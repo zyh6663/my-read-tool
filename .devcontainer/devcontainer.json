@@ -1,0 +1,26 @@
+{
+    "name": "PureReader-Dev-Env",
+    "image": "mcr.microsoft.com/devcontainers/universal:2", // 使用通用镜像，自带常用环境
+    "features": {
+        "ghcr.io/devcontainers/features/go:1": {
+            "version": "latest"
+        }
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "golang.Go",              // Go 官方插件
+                "Dart-Code.flutter",      // Flutter 官方插件
+                "Continue.continue",      // AI 助手插件 (支持接入 Gemini)
+                "GitHub.vscode-pull-request-github"
+            ],
+            "settings": {
+                "terminal.integrated.shell.linux": "/bin/bash",
+                "go.toolsManagement.checkForUpdates": "proxy",
+                "dart.flutterSdkPath": "/home/codespace/flutter" 
+            }
+        }
+    },
+    "forwardPorts": [8080, 8081], // 8080给后端API，8081给Flutter Web预览
+    "postCreateCommand": "bash .devcontainer/setup.sh" // 自动执行安装脚本
+}
