@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
+import 'reading_page.dart';
+
 /* -------------------------------------------------------------------------- */
 /*  Models                                                                     */
 /* -------------------------------------------------------------------------- */
@@ -248,137 +250,7 @@ class BookCard extends StatelessWidget {
   }
 }
 
-/* -------------------------------------------------------------------------- */
-/*  Reading Page                                                               */
-/* -------------------------------------------------------------------------- */
 
-class ReadingPage extends StatefulWidget {
-  final int bookId;
-  final String bookTitle;
-
-  const ReadingPage({
-    super.key,
-    required this.bookId,
-    required this.bookTitle,
-  });
-
-  @override
-  State<ReadingPage> createState() => _ReadingPageState();
-}
-
-class _ReadingPageState extends State<ReadingPage> {
-  String _content = '';
-  bool _isLoading = true;
-  String? _error;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadContent();
-  }
-
-  Future<void> _loadContent() async {
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
-
-    try {
-      final book = await BookApiService.fetchBookById(widget.bookId);
-      if (!mounted) return;
-      setState(() {
-        _content = book.content;
-        _isLoading = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _error = e.toString();
-        _isLoading = false;
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF4ECD8),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFFF4ECD8),
-        elevation: 0,
-        scrolledUnderElevation: 1,
-        iconTheme: IconThemeData(color: Colors.grey.shade800),
-        titleTextStyle: TextStyle(
-          color: Colors.grey.shade800,
-          fontSize: 18,
-          fontWeight: FontWeight.w600,
-        ),
-        title: Text(widget.bookTitle),
-      ),
-      body: _buildBody(),
-    );
-  }
-
-  Widget _buildBody() {
-    if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
-    }
-
-    if (_error != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.error_outline, size: 48, color: Colors.grey.shade500),
-              const SizedBox(height: 16),
-              Text(
-                'Failed to load content',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                _error!,
-                style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 16),
-              FilledButton.tonalIcon(
-                onPressed: _loadContent,
-                icon: const Icon(Icons.refresh),
-                label: const Text('Retry'),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    if (_content.isEmpty) {
-      return const Center(
-        child: Text(
-          'No content available',
-          style: TextStyle(color: Colors.grey),
-        ),
-      );
-    }
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-      child: SelectableText(
-        _content,
-        style: TextStyle(
-          fontSize: 18,
-          height: 1.6,
-          color: Colors.grey.shade800,
-        ),
-      ),
-    );
-  }
-}
 
 /* -------------------------------------------------------------------------- */
 /*  Home Page                                                                  */
