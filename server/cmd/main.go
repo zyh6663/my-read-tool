@@ -38,6 +38,7 @@ func main() {
 	r.GET("/api/books/:id/chapters/:index", api.GetChapterByIndex)
 	r.GET("/api/books/:id/progress", api.GetProgress)
 	r.PUT("/api/books/:id/progress", api.UpdateProgress)
+	r.DELETE("/api/books/:id", api.DeleteBook)
 	r.POST("/api/scan", api.TriggerScan)
 	r.POST("/api/books/upload", api.UploadBook)
 

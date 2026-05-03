@@ -241,9 +241,22 @@ func GetChapterByIndex(c *gin.Context) {
 	})
 }
 
-// GetProgress returns the reading progress for a given book.
+// extractUserID reads X-User-Id from request headers.
+func extractUserID(c *gin.Context) string {
+	return c.GetHeader("X-User-Id")
+}
+
+// GetProgress returns the reading progress for a given book (scoped to user).
 func GetProgress(c *gin.Context) {
 	id := c.Param("id")
+	userID := extractUserID(c)
+
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Missing X-User-Id header",
+		})
+		return
+	}
 
 	var book models.Book
 	if err := database.DB.First(&book, id).Error; err != nil {
@@ -254,11 +267,12 @@ func GetProgress(c *gin.Context) {
 	}
 
 	var progress models.Progress
-	result := database.DB.Where("book_id = ?", book.ID).First(&progress)
+	result := database.DB.Where("book_id = ? AND user_id = ?", book.ID, userID).First(&progress)
 	if result.Error != nil {
 		// No progress record yet – return default (chapter 0)
 		c.JSON(http.StatusOK, gin.H{
 			"book_id":       book.ID,
+			"user_id":       userID,
 			"chapter_index": 0,
 			"position":      0,
 		})
@@ -267,14 +281,56 @@ func GetProgress(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"book_id":       progress.BookID,
+		"user_id":       progress.UserID,
 		"chapter_index": progress.ChapterIndex,
 		"position":      progress.Position,
 	})
 }
 
-// UpdateProgress saves or updates the reading progress for a given book.
+// DeleteBook deletes a book and its associated progress records.
+func DeleteBook(c *gin.Context) {
+	id := c.Param("id")
+
+	var book models.Book
+	if err := database.DB.First(&book, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": "Book not found",
+		})
+		return
+	}
+
+	// Delete progress records associated with this book
+	if err := database.DB.Where("book_id = ?", book.ID).Delete(&models.Progress{}).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to delete progress records",
+		})
+		return
+	}
+
+	// Delete the book record
+	if err := database.DB.Delete(&book).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to delete book",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Book deleted successfully",
+	})
+}
+
+// UpdateProgress saves or updates the reading progress for a given book (scoped to user).
 func UpdateProgress(c *gin.Context) {
 	id := c.Param("id")
+	userID := extractUserID(c)
+
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Missing X-User-Id header",
+		})
+		return
+	}
 
 	var book models.Book
 	if err := database.DB.First(&book, id).Error; err != nil {
@@ -296,11 +352,12 @@ func UpdateProgress(c *gin.Context) {
 	}
 
 	var progress models.Progress
-	result := database.DB.Where("book_id = ?", book.ID).First(&progress)
+	result := database.DB.Where("book_id = ? AND user_id = ?", book.ID, userID).First(&progress)
 	if result.Error != nil {
 		// Create new progress record
 		progress = models.Progress{
 			BookID:       book.ID,
+			UserID:       userID,
 			ChapterIndex: req.ChapterIndex,
 			Position:     req.Position,
 		}
@@ -324,6 +381,7 @@ func UpdateProgress(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"book_id":       progress.BookID,
+		"user_id":       progress.UserID,
 		"chapter_index": progress.ChapterIndex,
 		"position":      progress.Position,
 	})
