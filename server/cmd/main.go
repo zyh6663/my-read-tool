@@ -34,8 +34,12 @@ func main() {
 
 	r.GET("/api/books", api.GetBooks)
 	r.GET("/api/books/:id", api.GetBookByID)
+	r.GET("/api/books/:id/chapters", api.GetChapters)
 	r.GET("/api/books/:id/chapters/:index", api.GetChapterByIndex)
+	r.GET("/api/books/:id/progress", api.GetProgress)
+	r.PUT("/api/books/:id/progress", api.UpdateProgress)
 	r.POST("/api/scan", api.TriggerScan)
+	r.POST("/api/books/upload", api.UploadBook)
 
 	if err := r.Run("0.0.0.0:8080"); err != nil {
 		panic(err)

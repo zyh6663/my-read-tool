@@ -1,5 +1,5 @@
 import 'dart:convert';
-
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
@@ -17,7 +17,7 @@ class Category {
 
   factory Category.fromJson(Map<String, dynamic> json) {
     return Category(
-      id: json['ID'] as int,
+      id: json['ID'] as int? ?? 0,
       name: json['name'] as String? ?? '',
     );
   }
@@ -48,7 +48,7 @@ class Book {
 
   factory Book.fromJson(Map<String, dynamic> json) {
     return Book(
-      id: json['ID'] as int? ?? 0,
+      id: json['id'] as int? ?? 0,
       title: json['title'] as String? ?? '',
       author: json['author'] as String? ?? '',
       coverUrl: json['cover_url'] as String? ?? '',
@@ -120,11 +120,32 @@ class BookApiService {
         jsonDecode(response.body) as Map<String, dynamic>;
     return Book.fromJson(body['book'] as Map<String, dynamic>);
   }
-  
-  
 
+  /// Upload a .txt file to the backend.
+  /// Uses bytes for Web compatibility (no physical path on Web).
+  /// Returns the server response as Map.
+  static Future<Map<String, dynamic>> uploadBook(PlatformFile file) async {
+    final uri = Uri.parse('$baseUrl/api/books/upload');
+    final request = http.MultipartRequest('POST', uri);
 
+    // Use fromBytes with filename so the backend knows it's a .txt file
+    request.files.add(
+      http.MultipartFile.fromBytes(
+        'file',
+        file.bytes!,
+        filename: file.name,
+      ),
+    );
 
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
+
+    if (response.statusCode != 200) {
+      throw Exception('Upload failed: ${response.statusCode} ${response.body}');
+    }
+
+    return jsonDecode(response.body) as Map<String, dynamic>;
+  }
 }
 
 /* -------------------------------------------------------------------------- */
@@ -326,6 +347,68 @@ class _BookshelfPageState extends State<BookshelfPage> {
     }
   }
 
+  Future<void> _onUploadPressed() async {
+    try {
+      // Open file picker
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['txt'],
+      );
+
+      if (result == null || result.files.isEmpty) return;
+
+      // ── Show loading dialog ──
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const Center(
+          child: Card(
+            child: Padding(
+              padding: EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('上传中，请稍候…'),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final file = result.files.first;
+      final response = await BookApiService.uploadBook(file);
+
+      // ── Close loading dialog ──
+      if (mounted) Navigator.of(context).pop();
+
+      await _loadBooks();
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('上传成功：${response['title']}（${response['chapters']} 章）'),
+          backgroundColor: Colors.green.shade400,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    } catch (e) {
+      // ── Close loading dialog if open ──
+      if (mounted) Navigator.of(context).pop();
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('上传失败：$e'),
+          backgroundColor: Colors.red.shade300,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -334,6 +417,13 @@ class _BookshelfPageState extends State<BookshelfPage> {
         centerTitle: true,
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
+          // Upload button
+          IconButton(
+            icon: const Icon(Icons.upload_file),
+            tooltip: 'Upload .txt book',
+            onPressed: _onUploadPressed,
+          ),
+          // Refresh button
           IconButton(
             icon: const Icon(Icons.refresh),
             tooltip: 'Refresh',

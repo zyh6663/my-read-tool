@@ -144,6 +144,42 @@ func GetBookByID(c *gin.Context) {
 	})
 }
 
+// GetChapters returns a lightweight list of chapters (index + title only, no content).
+// GET /api/books/:id/chapters
+func GetChapters(c *gin.Context) {
+	id := c.Param("id")
+
+	var book models.Book
+	if err := database.DB.First(&book, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": "Book not found",
+		})
+		return
+	}
+
+	if book.Format != "txt" {
+		// For non-TXT books, return a single "chapter" entry
+		c.JSON(http.StatusOK, gin.H{
+			"chapters": []models.ChapterInfo{
+				{Index: 0, Title: book.Title},
+			},
+		})
+		return
+	}
+
+	_, toc, err := services.ParseTXTFile(book.FilePath)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to parse book file",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"chapters": toc,
+	})
+}
+
 // GetChapterByIndex returns the content of a specific chapter.
 func GetChapterByIndex(c *gin.Context) {
 	id := c.Param("id")
@@ -202,5 +238,93 @@ func GetChapterByIndex(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"chapter": chapters[index],
+	})
+}
+
+// GetProgress returns the reading progress for a given book.
+func GetProgress(c *gin.Context) {
+	id := c.Param("id")
+
+	var book models.Book
+	if err := database.DB.First(&book, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": "Book not found",
+		})
+		return
+	}
+
+	var progress models.Progress
+	result := database.DB.Where("book_id = ?", book.ID).First(&progress)
+	if result.Error != nil {
+		// No progress record yet – return default (chapter 0)
+		c.JSON(http.StatusOK, gin.H{
+			"book_id":       book.ID,
+			"chapter_index": 0,
+			"position":      0,
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"book_id":       progress.BookID,
+		"chapter_index": progress.ChapterIndex,
+		"position":      progress.Position,
+	})
+}
+
+// UpdateProgress saves or updates the reading progress for a given book.
+func UpdateProgress(c *gin.Context) {
+	id := c.Param("id")
+
+	var book models.Book
+	if err := database.DB.First(&book, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": "Book not found",
+		})
+		return
+	}
+
+	var req struct {
+		ChapterIndex int     `json:"chapter_index"`
+		Position     float64 `json:"position"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid request body",
+		})
+		return
+	}
+
+	var progress models.Progress
+	result := database.DB.Where("book_id = ?", book.ID).First(&progress)
+	if result.Error != nil {
+		// Create new progress record
+		progress = models.Progress{
+			BookID:       book.ID,
+			ChapterIndex: req.ChapterIndex,
+			Position:     req.Position,
+		}
+		if err := database.DB.Create(&progress).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Failed to save progress",
+			})
+			return
+		}
+	} else {
+		// Update existing record
+		progress.ChapterIndex = req.ChapterIndex
+		progress.Position = req.Position
+		if err := database.DB.Save(&progress).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Failed to update progress",
+			})
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"book_id":       progress.BookID,
+		"chapter_index": progress.ChapterIndex,
+		"position":      progress.Position,
 	})
 }
