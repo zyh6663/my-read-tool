@@ -12,12 +12,16 @@ class ReadingAppBar extends StatelessWidget {
   final ReadingTheme theme;
   final String bookTitle;
   final VoidCallback onBackPressed;
+  final VoidCallback onFavorite;
+  final bool isFavorited;
 
   const ReadingAppBar({
     super.key,
     required this.theme,
     required this.bookTitle,
     required this.onBackPressed,
+    required this.onFavorite,
+    required this.isFavorited,
   });
 
   @override
@@ -54,6 +58,14 @@ class ReadingAppBar extends StatelessWidget {
                         color: theme.title,
                       ),
                     ),
+                  ),
+                  IconButton(
+                    icon: Icon(
+                      isFavorited ? Icons.favorite : Icons.favorite_border,
+                      color: isFavorited ? Colors.red : theme.title,
+                    ),
+                    onPressed: onFavorite,
+                    tooltip: isFavorited ? '已加入书架' : '加入书架',
                   ),
                 ],
               ),

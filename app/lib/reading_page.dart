@@ -9,8 +9,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'widgets/reading_bottom_bar.dart';
 import 'widgets/chapter_drawer.dart';
 import 'widgets/reading_app_bar.dart';
-const String _kBookApiBaseUrl =
-    'https://super-duper-disco-pjwqr9vqgq44f6j4p-8080.app.github.dev';
+import 'auth_pages.dart';
+import 'config/api_config.dart';
+const String _kBookApiBaseUrl = ApiConfig.baseUrl;
 
 /// 全局设备 ID，由 main() 在启动时写入
 String _globalDeviceId = '';
@@ -74,6 +75,10 @@ class _ReadingPageState extends State<ReadingPage> {
   bool _showMenu = true;
   final ScrollController _scrollController = ScrollController();
 
+  // --- Favorite state ---
+  bool _isFavorited = false;
+  bool _isFavoriteLoading = false;
+
   // --- Reading customization state ---
   ReadingTheme _currentTheme = ReadingTheme.eyeCare;
   double _fontSize = 18.0;
@@ -84,6 +89,7 @@ class _ReadingPageState extends State<ReadingPage> {
     super.initState();
     _loadToc();
     _updateStatusBar();
+    _checkShelfStatus();
   }
 
   // ----------------------------------------------------------------
@@ -305,6 +311,100 @@ class _ReadingPageState extends State<ReadingPage> {
     setState(() => _showMenu = !_showMenu);
   }
 
+  // ----------------------------------------------------------------
+  //  Favorite / 加入书架
+  // ----------------------------------------------------------------
+
+  Future<void> _checkShelfStatus() async {
+    final token = await getToken();
+    if (token == null) return; // 未登录，跳过检查
+    try {
+      final uri = Uri.parse(
+          '$_kBookApiBaseUrl/api/bookshelf/check/${widget.bookId}');
+      final res = await http.get(uri, headers: {
+        'Content-Type': 'application/json',
+        'X-User-Id': token ?? '',
+      });
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body) as Map<String, dynamic>;
+        if (!mounted) return;
+        setState(() {
+          _isFavorited = body['in_shelf'] == true;
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _toggleFavorite() async {
+    if (_isFavoriteLoading) return;
+
+    // 健壮性检查：未登录时直接提示，阻止无效请求
+    final token = await getToken();
+    if (token == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).clearSnackBars();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('请先登录后再收藏'),
+          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.only(bottom: 80, left: 60, right: 60),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          backgroundColor: Colors.orange.shade400,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isFavoriteLoading = true);
+    try {
+      final uri = Uri.parse('$_kBookApiBaseUrl/api/bookshelf/add');
+      final res = await http.post(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'X-User-Id': token ?? '',
+        },
+        body: jsonEncode({'book_id': widget.bookId}),
+      );
+      if (!mounted) return;
+      if (res.statusCode == 201) {
+        setState(() {
+          _isFavorited = true;
+          _isFavoriteLoading = false;
+        });
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).clearSnackBars();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('已成功加入书架！'),
+            duration: Duration(seconds: 1),
+            behavior: SnackBarBehavior.floating,
+            margin: EdgeInsets.only(bottom: 80, left: 60, right: 60),
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          ),
+        );
+      } else if (res.statusCode == 409) {
+        // 已在书架中
+        setState(() {
+          _isFavorited = true;
+          _isFavoriteLoading = false;
+        });
+        if (!mounted) return;
+        _showEdgeToast('已在书架中');
+      } else {
+        setState(() => _isFavoriteLoading = false);
+        if (!mounted) return;
+        _showEdgeToast('加入书架失败');
+      }
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isFavoriteLoading = false);
+      if (!mounted) return;
+      _showEdgeToast('网络异常，请稍后重试');
+    }
+  }
+
   // ================================================================
   //                         BUILD
   // ================================================================
@@ -341,11 +441,13 @@ class _ReadingPageState extends State<ReadingPage> {
                     top: 0,
                     left: 0,
                     right: 0,
-                    child: ReadingAppBar(
-                      theme: theme,
-                      bookTitle: widget.bookTitle,
-                      onBackPressed: () => Navigator.pop(context),
-                    ),
+                  child: ReadingAppBar(
+                    theme: theme,
+                    bookTitle: widget.bookTitle,
+                    onBackPressed: () => Navigator.pop(context),
+                    onFavorite: _toggleFavorite,
+                    isFavorited: _isFavorited,
+                  ),
                   ),
                 if (_showMenu)
                   Positioned(

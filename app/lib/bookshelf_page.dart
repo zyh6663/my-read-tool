@@ -1,6 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+
+import 'auth_pages.dart';
+import 'reading_page.dart';
 
 /// 书架数据模型
 class ShelfBook {
@@ -22,7 +26,7 @@ class ShelfBook {
     final book = json['book'] as Map<String, dynamic>? ?? {};
     return ShelfBook(
       id: json['id'] as int? ?? 0,
-      bookId:$json['book_id'] as int? ?? 0,
+      bookId:json['book_id'] as int? ?? 0,
       addedAt: json['added_at'] as String? ?? '',
       bookTitle: book['title'] as String? ?? '未知书名',
       bookAuthor: book['author'] as String? ?? '未知作者',
@@ -63,10 +67,14 @@ class _BookShelfPageState extends State<BookShelfPage> {
     });
 
     try {
+      final token = await getToken();
       final uri = Uri.parse('${widget.baseUrl}/api/bookshelf/list');
       final response = await http.get(
         uri,
-        headers: {'X-User-Id': widget.userId},
+        headers: {
+          'Content-Type': 'application/json',
+          'X-User-Id': token ?? '',
+        },
       );
 
       if (response.statusCode == 200) {
@@ -94,11 +102,15 @@ class _BookShelfPageState extends State<BookShelfPage> {
 
   Future<void> _removeBook(ShelfBook book) async {
     try {
+      final token = await getToken();
       final uri =
           Uri.parse('${widget.baseUrl}/api/bookshelf/remove/${book.id}');
       final response = await http.delete(
         uri,
-        headers: {'X-User-Id': widget.userId},
+        headers: {
+          'Content-Type': 'application/json',
+          'X-User-Id': token ?? '',
+        },
       );
 
       if (response.statusCode == 200) {
@@ -151,8 +163,19 @@ class _BookShelfPageState extends State<BookShelfPage> {
   }
 
   void _onTapBook(ShelfBook book) {
-    // TODO: F10 路由 — 跳转到阅读页面
-    debugPrint('[BookShelfPage] 点击书籎: id=${book.bookId}, title=${book.bookTitle}');
+    Navigator.of(context)
+        .push(
+      MaterialPageRoute(
+        builder: (_) => ReadingPage(
+          bookId: book.bookId,
+          bookTitle: book.bookTitle,
+        ),
+      ),
+    )
+        .then((_) {
+      // 从阅读页返回时刷新书架数据
+      _fetchBookshelf();
+    });
   }
 
   @override

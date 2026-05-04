@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
 import 'auth_pages.dart';
+import 'config/api_config.dart';
 import 'reading_page.dart';
 
 /* -------------------------------------------------------------------------- */
@@ -79,8 +80,7 @@ class BookApiService {
   // Android emulator -> 10.0.2.2 maps to host localhost
   // iOS simulator   -> use 'http://localhost:8080'
   // Physical device  -> use your machine's LAN IP
-  static const String baseUrl =
-      'https://super-duper-disco-pjwqr9vqgq44f6j4p-8080.app.github.dev';
+  static String get baseUrl => ApiConfig.baseUrl;
 
   static String _deviceId = '';
 
@@ -360,7 +360,8 @@ class BookCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                padding: const EdgeInsets.fromLTRB(10, 7, 10, 6),
+              padding: const EdgeInsets.fromLTRB(10, 7, 10, 6),
+              child:SingleChildScrollView(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -421,9 +422,10 @@ class BookCard extends StatelessWidget {
                         ],
                       ],
                     ),
-                 ],
+                  ],
                 ),
               ),
+            ),
             ),
           ],
         ),
@@ -858,7 +860,7 @@ class _PureReaderAppState extends State<PureReaderApp> {
     if (token != null) {
       try {
         final response = await http.get(
-          Uri.parse('$baseUrl/api/auth/me'),
+          Uri.parse('${ApiConfig.baseUrl}/api/auth/me'),
           headers: {'Authorization': 'Bearer $token'},
         );
         if (response.statusCode == 200) {

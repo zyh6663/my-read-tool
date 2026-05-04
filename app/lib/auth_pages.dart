@@ -5,13 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'bookshelf_page.dart';
-
-/* -------------------------------------------------------------------------- */
-/*  Constants                                                                  */
-/* -------------------------------------------------------------------------- */
-
-// Android 模拟器 → 宿主机；真机调试改为局域网 IP，如 'http://192.168.x.x:8080'
-const baseUrl = 'http://10.0.2.2:8080';
+import 'config/api_config.dart';
 
 /* -------------------------------------------------------------------------- */
 /*  Token 管理工具函数                                                          */
@@ -50,7 +44,7 @@ Map<String, String> authHeaders(String? token) {
 /// 登录 — 调用 POST /api/auth/login
 Future<Map<String, dynamic>> login(String email, String password) async {
   final response = await http.post(
-    Uri.parse('$baseUrl/api/auth/login'),
+    Uri.parse('${ApiConfig.baseUrl}/api/auth/login'),
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode({'email': email, 'password': password}),
   );
@@ -72,7 +66,7 @@ Future<Map<String, dynamic>> register(
     reqBody['nickname'] = nickname.trim();
   }
   final response = await http.post(
-    Uri.parse('$baseUrl/api/auth/register'),
+    Uri.parse('${ApiConfig.baseUrl}/api/auth/register'),
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode(reqBody),
   );
@@ -86,7 +80,7 @@ Future<Map<String, dynamic>> register(
 /// 获取当前用户信息 — 调用 GET /api/auth/me
 Future<Map<String, dynamic>> fetchUserInfo(String token) async {
   final response = await http.get(
-    Uri.parse('$baseUrl/api/auth/me'),
+    Uri.parse('${ApiConfig.baseUrl}/api/auth/me'),
     headers: authHeaders(token),
   );
   final body = jsonDecode(response.body) as Map<String, dynamic>;
@@ -747,7 +741,7 @@ class _UserCenterPageState extends State<UserCenterPage> {
                       MaterialPageRoute(
                         builder: (_) => BookShelfPage(
                           userId: user.id.toString(),
-                          baseUrl: baseUrl,
+                          baseUrl: ApiConfig.baseUrl,
                         ),
                       ),
                     );
