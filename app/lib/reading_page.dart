@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'widgets/reading_bottom_bar.dart';
 const String _kBookApiBaseUrl =
     'https://super-duper-disco-pjwqr9vqgq44f6j4p-8080.app.github.dev';
 
@@ -15,52 +16,6 @@ String _globalDeviceId = '';
 /// 由外部（main.dart）调用来注入已加载/生成的 deviceId
 void setGlobalDeviceId(String id) {
   _globalDeviceId = id;
-}
-
-// --- Reading theme definitions ---
-class _ReadingTheme {
-  final Color background;
-  final Color text;
-  final Color title;
-  final Color appBar;
-  final Color divider;
-  final String label;
-
-  const _ReadingTheme({
-    required this.background,
-    required this.text,
-    required this.title,
-    required this.appBar,
-    required this.divider,
-    required this.label,
-  });
-
-  static const eyeCare = _ReadingTheme(
-    background: Color(0xFFFFF8E1),
-    text: Color(0xFF5A5A5A),
-    title: Color(0xFF3E3232),
-    appBar: Color(0xFFFFF8E1),
-    divider: Color(0xFFE8DCC8),
-    label: '护眼',
-  );
-
-  static const dark = _ReadingTheme(
-    background: Color(0xFF1E1E1E),
-    text: Color(0xFFCCCCCC),
-    title: Color(0xFFDDDDDD),
-    appBar: Color(0xFF1E1E1E),
-    divider: Color(0xFF333333),
-    label: '暗黑',
-  );
-
-  static const parchment = _ReadingTheme(
-    background: Color(0xFFF0E6D3),
-    text: Color(0xFF4A4A4A),
-    title: Color(0xFF3E3232),
-    appBar: Color(0xFFF0E6D3),
-    divider: Color(0xFFD8CEB8),
-    label: '羊皮纸',
-  );
 }
 
 class _ChapterInfo {
@@ -118,7 +73,7 @@ class _ReadingPageState extends State<ReadingPage> {
   final ScrollController _scrollController = ScrollController();
 
   // --- Reading customization state ---
-  _ReadingTheme _currentTheme = _ReadingTheme.eyeCare;
+  ReadingTheme _currentTheme = ReadingTheme.eyeCare;
   double _fontSize = 18.0;
   double _lineHeight = 1.5;
 
@@ -135,7 +90,7 @@ class _ReadingPageState extends State<ReadingPage> {
 
   void _updateStatusBar() {
     final theme = _currentTheme;
-    final isDark = theme == _ReadingTheme.dark;
+    final isDark = theme == ReadingTheme.dark;
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
       statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
@@ -383,7 +338,23 @@ class _ReadingPageState extends State<ReadingPage> {
                     bottom: 0,
                     left: 0,
                     right: 0,
-                    child: _buildBottomBar(theme),
+                    child: ReadingBottomBar(
+                  theme: theme,
+                  fontSize: _fontSize,
+                  lineHeight: _lineHeight,
+                  currentChapterIndex: _currentChapterIndex,
+                  totalChapters: _chapters.length,
+                  onThemeChanged: (t) {
+                    setState(() => _currentTheme = t);
+                    _updateStatusBar();
+                  },
+                  onFontSizeChanged: (v) => setState(() => _fontSize = v),
+                  onLineHeightChanged: (v) => setState(() => _lineHeight = v),
+                  onPrevChapter: _goToPrev,
+                  onNextChapter: _goToNext,
+                  onOpenDrawer: () =>
+                      _scaffoldKey.currentState?.openDrawer(),
+                ),
                   ),
               ],
             ),
@@ -397,7 +368,7 @@ class _ReadingPageState extends State<ReadingPage> {
   //  Body
   // ================================================================
 
-  Widget _buildContentBody(_ReadingTheme theme) {
+  Widget _buildContentBody(ReadingTheme theme) {
     if (_isLoadingToc || (_isLoadingContent && _content.isEmpty)) {
       return Center(
         child: SizedBox(
@@ -533,7 +504,7 @@ class _ReadingPageState extends State<ReadingPage> {
   //  Top bar — 毛玻璃效果
   // ================================================================
 
-  Widget _buildTopBar(_ReadingTheme theme) {
+  Widget _buildTopBar(ReadingTheme theme) {
     return ClipRect(
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
@@ -577,258 +548,10 @@ class _ReadingPageState extends State<ReadingPage> {
   }
 
   // ================================================================
-  //  Bottom bar — 毛玻璃效果
-  // ================================================================
-
-  Widget _buildBottomBar(_ReadingTheme theme) {
-    return ClipRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-        child: Container(
-          decoration: BoxDecoration(
-            color: theme.appBar.withAlpha(170),
-            border: Border(
-              top: BorderSide(color: theme.divider.withAlpha(80), width: 0.5),
-            ),
-          ),
-          child: SafeArea(
-            top: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _buildCustomizeRow(theme),
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      _BottomBtn(
-                        icon: Icons.skip_previous_rounded,
-                        label: '上一章',
-                        enabled: _currentChapterIndex > 0,
-                        onTap: _currentChapterIndex > 0 ? _goToPrev : null,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${_currentChapterIndex + 1} / ${_chapters.length}',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          color: theme.text,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      _BottomBtn(
-                        icon: Icons.skip_next_rounded,
-                        label: '下一章',
-                        enabled: _currentChapterIndex < _chapters.length - 1,
-                        onTap: _currentChapterIndex < _chapters.length - 1
-                            ? _goToNext
-                            : null,
-                      ),
-                      const Spacer(),
-                      _BottomBtn(
-                        icon: Icons.list_rounded,
-                        label: '目录',
-                        enabled: true,
-                        onTap: () =>
-                            _scaffoldKey.currentState?.openDrawer(),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ================================================================
-  //  Customization row
-  // ================================================================
-
-  Widget _buildCustomizeRow(_ReadingTheme theme) {
-    const themes = [
-      _ReadingTheme.eyeCare,
-      _ReadingTheme.dark,
-      _ReadingTheme.parchment,
-    ];
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        SizedBox(
-          height: 36,
-          child: Row(
-            children: [
-              ...themes.map((t) {
-                final isActive = t == _currentTheme;
-                return GestureDetector(
-                  onTap: () {
-                    setState(() => _currentTheme = t);
-                    _updateStatusBar();
-                  },
-                  child: Container(
-                    margin: const EdgeInsets.only(right: 6),
-                    width: 28,
-                    height: 28,
-                    decoration: BoxDecoration(
-                      color: t.background,
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: isActive ? theme.title : t.divider,
-                        width: isActive ? 2.5 : 1.5,
-                      ),
-                    ),
-                    child: isActive
-                        ? Icon(Icons.check, size: 14, color: theme.text)
-                        : null,
-                  ),
-                );
-              }),
-              const SizedBox(width: 12),
-              Container(width: 1, height: 20, color: theme.divider),
-              const SizedBox(width: 12),
-              _FontSizeBtn(
-                label: 'A-',
-                onTap: () {
-                  setState(() {
-                    _fontSize = (_fontSize - 1).clamp(12.0, 30.0);
-                  });
-                },
-                theme: theme,
-              ),
-              Expanded(
-                child: SliderTheme(
-                  data: SliderTheme.of(context).copyWith(
-                    activeTrackColor: theme.title.withAlpha(150),
-                    inactiveTrackColor: theme.divider,
-                    thumbColor: theme.title,
-                    overlayColor: theme.title.withAlpha(20),
-                    trackHeight: 2.5,
-                    thumbShape:
-                        const RoundSliderThumbShape(enabledThumbRadius: 6),
-                  ),
-                  child: Slider(
-                    value: _fontSize,
-                    min: 12,
-                    max: 30,
-                    divisions: 18,
-                    label: '${_fontSize.round()}',
-                    onChanged: (v) => setState(() => _fontSize = v),
-                  ),
-                ),
-              ),
-              _FontSizeBtn(
-                label: 'A+',
-                onTap: () {
-                  setState(() {
-                    _fontSize = (_fontSize + 1).clamp(12.0, 30.0);
-                  });
-                },
-                theme: theme,
-              ),
-              SizedBox(
-                width: 30,
-                child: Text(
-                  '${_fontSize.round()}',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: theme.text.withAlpha(180),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 6),
-        SizedBox(
-          height: 28,
-          child: Row(
-            children: [
-              Text('行距',
-                  style:
-                      TextStyle(fontSize: 11, color: theme.text.withAlpha(150))),
-              const SizedBox(width: 6),
-              _buildLineHeightBtn(theme, 1.2, '紧凑'),
-              const SizedBox(width: 4),
-              _buildLineHeightBtn(theme, 1.5, '标准'),
-              const SizedBox(width: 4),
-              _buildLineHeightBtn(theme, 1.8, '宽松'),
-              const SizedBox(width: 8),
-              Expanded(
-                child: SliderTheme(
-                  data: SliderTheme.of(context).copyWith(
-                    activeTrackColor: theme.title.withAlpha(150),
-                    inactiveTrackColor: theme.divider,
-                    thumbColor: theme.title,
-                    overlayColor: theme.title.withAlpha(20),
-                    trackHeight: 2.0,
-                    thumbShape:
-                        const RoundSliderThumbShape(enabledThumbRadius: 5),
-                  ),
-                  child: Slider(
-                    value: _lineHeight,
-                    min: 1.0,
-                    max: 2.0,
-                    divisions: 20,
-                    label: _lineHeight.toStringAsFixed(1),
-                    onChanged: (v) => setState(() => _lineHeight = v),
-                  ),
-                ),
-              ),
-              SizedBox(
-                width: 28,
-                child: Text(
-                  _lineHeight.toStringAsFixed(1),
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                      fontSize: 11, color: theme.text.withAlpha(180)),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildLineHeightBtn(
-      _ReadingTheme theme, double value, String label) {
-    final isActive = (_lineHeight - value).abs() < 0.01;
-    return GestureDetector(
-      onTap: () => setState(() => _lineHeight = value),
-      child: Container(
-        height: 24,
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: isActive ? theme.title.withAlpha(30) : Colors.transparent,
-          border: Border.all(
-            color: isActive ? theme.title.withAlpha(120) : theme.divider,
-          ),
-          borderRadius: BorderRadius.circular(4),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 10,
-            fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
-            color: isActive ? theme.title : theme.text.withAlpha(180),
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ================================================================
   //  左侧抽屉目录 — 毛玻璃效果
   // ================================================================
 
-  Widget _buildChapterDrawer(_ReadingTheme theme) {
+  Widget _buildChapterDrawer(ReadingTheme theme) {
     return Drawer(
       child: ClipRect(
         child: BackdropFilter(
@@ -979,89 +702,3 @@ class _ReadingPageState extends State<ReadingPage> {
   }
 }
 
-// =====================================================================
-//  Reusable small widgets
-// =====================================================================
-
-class _BottomBtn extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final bool enabled;
-  final VoidCallback? onTap;
-
-  const _BottomBtn({
-    required this.icon,
-    required this.label,
-    this.enabled = true,
-    this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isActive = enabled && onTap != null;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(8),
-        onTap: isActive ? onTap : null,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                icon,
-                size: 20,
-                color: isActive ? Colors.grey[700] : Colors.grey[350],
-              ),
-              const SizedBox(height: 1),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 10,
-                  color: isActive ? Colors.grey[600] : Colors.grey[350],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _FontSizeBtn extends StatelessWidget {
-  final String label;
-  final VoidCallback onTap;
-  final _ReadingTheme theme;
-
-  const _FontSizeBtn({
-    required this.label,
-    required this.onTap,
-    required this.theme,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 28,
-        height: 28,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          border: Border.all(color: theme.divider),
-          borderRadius: BorderRadius.circular(6),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: theme.text,
-          ),
-        ),
-      ),
-    );
-  }
-}
