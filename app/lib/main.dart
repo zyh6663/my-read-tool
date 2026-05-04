@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
+import 'auth_pages.dart';
 import 'reading_page.dart';
 
 /* -------------------------------------------------------------------------- */
@@ -813,6 +814,12 @@ class _BookshelfPageState extends State<BookshelfPage> {
 /*  App Entry                                                                  */
 /* -------------------------------------------------------------------------- */
 
+String _globalDeviceId = '';
+
+void setGlobalDeviceId(String id) {
+  _globalDeviceId = id;
+}
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -829,8 +836,53 @@ Future<void> main() async {
   runApp(const PureReaderApp());
 }
 
-class PureReaderApp extends StatelessWidget {
+class PureReaderApp extends StatefulWidget {
   const PureReaderApp({super.key});
+
+  @override
+  State<PureReaderApp> createState() => _PureReaderAppState();
+}
+
+class _PureReaderAppState extends State<PureReaderApp> {
+  bool _isLoggedIn = false;
+  bool _isChecking = true;
+
+  @override
+  void initState() {
+    super.initState();
+    checkAuth();
+  }
+
+  void checkAuth() async {
+    final token = await getToken();
+    if (token != null) {
+      try {
+        final response = await http.get(
+          Uri.parse('$baseUrl/api/auth/me'),
+          headers: {'Authorization': 'Bearer $token'},
+        );
+        if (response.statusCode == 200) {
+          // Token 有效，进入主页
+          if (mounted) setState(() => _isLoggedIn = true);
+          if (mounted) setState(() => _isChecking = false);
+          return;
+        }
+        // 状态码非 200（如 401）：Token 已过期，清除并重新登录
+        if (response.statusCode == 401) {
+          await clearToken();
+        }
+      } catch (_) {
+        // 网络异常等，不清除 Token，允许离线进入主页
+        if (mounted) {
+          setState(() => _isLoggedIn = true);
+          setState(() => _isChecking = false);
+        }
+        return;
+      }
+    }
+    if (mounted) setState(() => _isLoggedIn = false);
+    if (mounted) setState(() => _isChecking = false);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -852,7 +904,62 @@ class PureReaderApp extends StatelessWidget {
         useMaterial3: true,
       ),
       themeMode: ThemeMode.system,
-      home: const BookshelfPage(),
+      home: _isChecking
+          ? const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            )
+          : _isLoggedIn
+              ? _MainHomePage(
+                  onLogout: () => setState(() => _isLoggedIn = false),
+                )
+              : const LoginPage(),
+    );
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/*  主页面（底部导航：书架 + 我的）                                           */
+/* -------------------------------------------------------------------------- */
+
+class _MainHomePage extends StatefulWidget {
+  final VoidCallback onLogout;
+
+  const _MainHomePage({required this.onLogout});
+
+  @override
+  State<_MainHomePage> createState() => _MainHomePageState();
+}
+
+class _MainHomePageState extends State<_MainHomePage> {
+  int _currentIndex = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: IndexedStack(
+        index: _currentIndex,
+        children: [
+          const BookshelfPage(),
+          UserCenterPage(onLogout: widget.onLogout),
+        ],
+      ),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _currentIndex,
+        onDestinationSelected: (index) =>
+            setState(() => _currentIndex = index),
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.library_books_outlined),
+            selectedIcon: Icon(Icons.library_books),
+            label: '书架',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.person_outline),
+            selectedIcon: Icon(Icons.person),
+            label: '我的',
+          ),
+        ],
+      ),
     );
   }
 }
