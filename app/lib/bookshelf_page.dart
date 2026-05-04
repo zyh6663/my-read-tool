@@ -70,7 +70,8 @@ class _BookShelfPageState extends State<BookShelfPage> {
       );
 
       if (response.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(response.body) as List<dynamic>;
+        final map = jsonDecode(response.body) as Map<String, dynamic>;
+        final List<dynamic> data = map['shelf'] as List<dynamic>;
         setState(() {
           _books = data
               .map((json) => ShelfBook.fromJson(json as Map<String, dynamic>))
@@ -106,7 +107,7 @@ class _BookShelfPageState extends State<BookShelfPage> {
         });
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('已移除《${book.bookTitle}》')),
+            SnackBar(content: Text('已移除《${book.bookTitle|〉')),
           );
         }
       } else {
@@ -156,7 +157,7 @@ class _BookShelfPageState extends State<BookShelfPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return Scafold(
       appBar: AppBar(
         title: const Text('我的书架'),
       ),
@@ -199,7 +200,7 @@ class _BookShelfPageState extends State<BookShelfPage> {
                   SizedBox(height: 16),
                   Text('书架空空如也', style: TextStyle(fontSize: 18, color: Colors.grey)),
                   SizedBox(height: 8),
-                  Text('快去发现好书吧～', style: TextStyle(color: Colors.grey)),
+                  Text('快去发现好书吧？', style: TextStyle(color: Colors.grey)),
                 ],
               ),
             ),
