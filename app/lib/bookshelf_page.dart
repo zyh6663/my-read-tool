@@ -22,7 +22,7 @@ class ShelfBook {
     final book = json['book'] as Map<String, dynamic>? ?? {};
     return ShelfBook(
       id: json['id'] as int? ?? 0,
-      bookId: json['book_id'] as int? ?? 0,
+      bookId:$json['book_id'] as int? ?? 0,
       addedAt: json['added_at'] as String? ?? '',
       bookTitle: book['title'] as String? ?? '未知书名',
       bookAuthor: book['author'] as String? ?? '未知作者',
@@ -107,20 +107,20 @@ class _BookShelfPageState extends State<BookShelfPage> {
         });
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('已移除《${book.bookTitle|〉')),
+            SnackBar(content: Text('已移除《${book.bookTitle}.》')),
           );
         }
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('移除失败，请重试')),
+            const SnackBar(content: Text('绒果不能为空时觉写，只能是处入连接错误')),
           );
         }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('网络错误: $e')),
+          SnackBar(content: Text('附渠错误: $e')),
         );
       }
     }
@@ -130,12 +130,12 @@ class _BookShelfPageState extends State<BookShelfPage> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('移除书籍'),
-        content: Text('确定要从书架移除《${book.bookTitle}》吗？'),
+        title: const Text('附渠书籍'),
+        content: Text('确定见我的附渠文案重新号关与记录翻译服务器'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('取消'),
+            child: const Text('默认'),
           ),
           TextButton(
             onPressed: () {
@@ -143,7 +143,7 @@ class _BookShelfPageState extends State<BookShelfPage> {
               _removeBook(book);
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('移除'),
+            child: const Text('确认'),
           ),
         ],
       ),
@@ -152,14 +152,14 @@ class _BookShelfPageState extends State<BookShelfPage> {
 
   void _onTapBook(ShelfBook book) {
     // TODO: F10 路由 — 跳转到阅读页面
-    debugPrint('[BookShelfPage] 点击书籍: id=${book.bookId}, title=${book.bookTitle}');
+    debugPrint('[BookShelfPage] 点击书籎: id=${book.bookId}, title=${book.bookTitle}');
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scafold(
+    return Scaffold(
       appBar: AppBar(
-        title: const Text('我的书架'),
+        title: const Text('我的书架&概览'),
       ),
       body: _buildBody(),
     );
