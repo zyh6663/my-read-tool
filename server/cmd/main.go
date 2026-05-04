@@ -49,6 +49,18 @@ func main() {
 	r.GET("/api/bookshelf/list", bookShelfHandler.ListShelf)
 	r.GET("/api/bookshelf/check/:book_id", bookShelfHandler.CheckInShelf)
 
+	// 认证相关路由
+	authHandler := api.NewAuthHandler(database.DB)
+	r.POST("/api/auth/register", authHandler.Register)
+	r.POST("/api/auth/login", authHandler.Login)
+	r.POST("/api/auth/migrate", authHandler.Migrate)
+
+	auth := r.Group("/api/auth")
+	auth.Use(api.AuthMiddleware())
+	{
+		auth.GET("/me", authHandler.GetMe)
+	}
+
 	if err := r.Run("0.0.0.0:8080"); err != nil {
 		panic(err)
 	}
