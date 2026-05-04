@@ -7,6 +7,8 @@ import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'widgets/reading_bottom_bar.dart';
+import 'widgets/chapter_drawer.dart';
+import 'widgets/reading_app_bar.dart';
 const String _kBookApiBaseUrl =
     'https://super-duper-disco-pjwqr9vqgq44f6j4p-8080.app.github.dev';
 
@@ -315,7 +317,15 @@ class _ReadingPageState extends State<ReadingPage> {
         return Scaffold(
           key: _scaffoldKey,
           backgroundColor: theme.background,
-          drawer: _buildChapterDrawer(theme),
+          drawer: ChapterDrawer(
+            theme: theme,
+            bookTitle: widget.bookTitle,
+            chapters: _chapters
+                .map((c) => ChapterDrawerItem(index: c.index, title: c.title))
+                .toList(),
+            currentIndex: _currentChapterIndex,
+            onChapterSelected: _jumpToChapter,
+          ),
           body: SafeArea(
             child: Stack(
               children: [
@@ -331,7 +341,11 @@ class _ReadingPageState extends State<ReadingPage> {
                     top: 0,
                     left: 0,
                     right: 0,
-                    child: _buildTopBar(theme),
+                    child: ReadingAppBar(
+                      theme: theme,
+                      bookTitle: widget.bookTitle,
+                      onBackPressed: () => Navigator.pop(context),
+                    ),
                   ),
                 if (_showMenu)
                   Positioned(
@@ -504,201 +518,5 @@ class _ReadingPageState extends State<ReadingPage> {
   //  Top bar — 毛玻璃效果
   // ================================================================
 
-  Widget _buildTopBar(ReadingTheme theme) {
-    return ClipRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-        child: Container(
-          decoration: BoxDecoration(
-            color: theme.appBar.withAlpha(160),
-            border: Border(
-              bottom:
-                  BorderSide(color: theme.divider.withAlpha(80), width: 0.5),
-            ),
-          ),
-          child: SafeArea(
-            bottom: false,
-            child: Padding(
-              padding: const EdgeInsets.only(left: 4, right: 4, top: 4),
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: Icon(Icons.arrow_back_rounded, color: theme.title),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: Text(
-                      widget.bookTitle,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: theme.title,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ================================================================
-  //  左侧抽屉目录 — 毛玻璃效果
-  // ================================================================
-
-  Widget _buildChapterDrawer(ReadingTheme theme) {
-    return Drawer(
-      child: ClipRect(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-          child: Container(
-            color: theme.appBar.withAlpha(170),
-            child: SafeArea(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  DrawerHeader(
-                    decoration: BoxDecoration(
-                      border: Border(
-                        bottom: BorderSide(color: theme.divider),
-                      ),
-                    ),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          Icon(Icons.menu_book_rounded,
-                              size: 36, color: theme.title.withAlpha(200)),
-                          const SizedBox(height: 12),
-                          Text(
-                            widget.bookTitle,
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                              color: theme.title,
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '共 ${_chapters.length} 章',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: theme.text.withAlpha(150),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: _chapters.isEmpty
-                        ? Center(
-                            child: Padding(
-                              padding: const EdgeInsets.all(24),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  SizedBox(
-                                    width: 24,
-                                    height: 24,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: theme.text.withAlpha(120),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Text(
-                                    '加载章节列表中...',
-                                    style: TextStyle(
-                                      color: theme.text.withAlpha(120),
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          )
-                        : ListView.builder(
-                            padding:
-                                const EdgeInsets.symmetric(vertical: 4),
-                            itemCount: _chapters.length,
-                            itemBuilder: (context, i) {
-                              final ch = _chapters[i];
-                              final isCurrent = i == _currentChapterIndex;
-                              return Material(
-                                color: isCurrent
-                                    ? theme.title.withAlpha(25)
-                                    : Colors.transparent,
-                                child: ListTile(
-                                  dense: true,
-                                  leading: Container(
-                                    width: 28,
-                                    height: 28,
-                                    alignment: Alignment.center,
-                                    decoration: BoxDecoration(
-                                      color: isCurrent
-                                          ? theme.title.withAlpha(180)
-                                          : Colors.transparent,
-                                      borderRadius:
-                                          BorderRadius.circular(14),
-                                      border: isCurrent
-                                          ? null
-                                          : Border.all(
-                                              color: theme.divider),
-                                    ),
-                                    child: Text(
-                                      '${ch.index}',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                        color: isCurrent
-                                            ? Colors.white
-                                            : theme.text.withAlpha(180),
-                                      ),
-                                    ),
-                                  ),
-                                  title: Text(
-                                    ch.title,
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: isCurrent
-                                          ? FontWeight.w700
-                                          : FontWeight.normal,
-                                      color: isCurrent
-                                          ? theme.title
-                                          : theme.text,
-                                    ),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  trailing: isCurrent
-                                      ? Icon(Icons.bookmark_rounded,
-                                          size: 18,
-                                          color:
-                                              theme.title.withAlpha(180))
-                                      : null,
-                                  onTap: () => _jumpToChapter(i),
-                                ),
-                              );
-                            },
-                          ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 }
 
