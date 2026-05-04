@@ -42,6 +42,13 @@ func main() {
 	r.POST("/api/scan", api.TriggerScan)
 	r.POST("/api/books/upload", api.UploadBook)
 
+	// 书架相关路由
+	bookShelfHandler := api.NewBookShelfHandler()
+	r.POST("/api/bookshelf/add", bookShelfHandler.AddToShelf)
+	r.DELETE("/api/bookshelf/remove/:id", bookShelfHandler.RemoveFromShelf)
+	r.GET("/api/bookshelf/list", bookShelfHandler.ListShelf)
+	r.GET("/api/bookshelf/check/:book_id", bookShelfHandler.CheckInShelf)
+
 	if err := r.Run("0.0.0.0:8080"); err != nil {
 		panic(err)
 	}
