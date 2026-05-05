@@ -11,6 +11,7 @@ import 'widgets/chapter_drawer.dart';
 import 'widgets/reading_app_bar.dart';
 import 'auth_pages.dart';
 import 'config/api_config.dart';
+import 'renderers/book_renderer.dart';
 const String _kBookApiBaseUrl = ApiConfig.baseUrl;
 
 /// 全局设备 ID，由 main() 在启动时写入
@@ -68,6 +69,7 @@ class _ReadingPageState extends State<ReadingPage> {
   int _currentChapterIndex = 0;
   final List<_ChapterInfo> _chapters = [];
   String _content = '';
+  String _bookFormat = 'txt';
   bool _isLoadingToc = true;
   bool _isLoadingContent = false;
   String? _error;
@@ -135,6 +137,11 @@ class _ReadingPageState extends State<ReadingPage> {
       final toc = list
           .map((e) => _ChapterInfo.fromJson(e as Map<String, dynamic>))
           .toList();
+      // 尝试从后端响应中读取书籍格式
+      final fmt = body['format'] as String? ?? body['book_format'] as String?;
+      if (fmt != null && fmt.isNotEmpty) {
+        _bookFormat = fmt;
+      }
       if (!mounted) return;
       setState(() {
         _chapters.clear();
@@ -528,91 +535,28 @@ class _ReadingPageState extends State<ReadingPage> {
       );
     }
 
-    return SingleChildScrollView(
-      controller: _scrollController,
-      physics: const ClampingScrollPhysics(),
-      padding: const EdgeInsets.only(top: 20, bottom: 100),
-      child: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 300),
-        switchInCurve: Curves.easeIn,
-        switchOutCurve: Curves.easeOut,
-        transitionBuilder: (Widget child, Animation<double> animation) {
-          return FadeTransition(opacity: animation, child: child);
-        },
-        child: Column(
-          key: ValueKey<int>(_currentChapterIndex),
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (_chapters.isNotEmpty &&
-                _currentChapterIndex < _chapters.length)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8, left: 24, right: 24),
-                child: Text(
-                  _chapters[_currentChapterIndex].title,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: theme.text.withAlpha(100),
-                    height: 1.2,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            if (_chapters.isNotEmpty &&
-                _currentChapterIndex < _chapters.length)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 20, left: 24, right: 24),
-                child: Text(
-                  _chapters[_currentChapterIndex].title,
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: theme.title,
-                    height: 1.4,
-                  ),
-                ),
-              ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: SelectableText(
-                _content,
-                style: TextStyle(
-                  fontSize: _fontSize,
-                  height: _lineHeight,
-                  color: theme.text,
-                  letterSpacing: 0.3,
-                ),
-              ),
-            ),
-            const SizedBox(height: 40),
-            if (_chapters.isNotEmpty)
-              Center(
-                child: Opacity(
-                  opacity: 0.5,
-                  child: Text(
-                    _currentChapterIndex < _chapters.length - 1
-                        ? '— 继续阅读 —'
-                        : '— 全文完 —',
-                    style: TextStyle(fontSize: 14, color: theme.text),
-                  ),
-                ),
-              ),
-            const SizedBox(height: 20),
-            if (_chapters.isNotEmpty)
-              Center(
-                child: Text(
-                  '第 ${_currentChapterIndex + 1} 章 / 共 ${_chapters.length} 章',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: theme.text.withAlpha(100),
-                    height: 1.2,
-                  ),
-                ),
-              ),
-            const SizedBox(height: 60),
-          ],
-        ),
-      ),
+    final format = bookFormatFromString(_bookFormat);
+
+    // 将内部的 _Chapter 转换为渲染器所需的 RendererChapter
+    final rendererChapters = _chapters.map((c) {
+      // 当前正在展示的章节使用已加载的 _content，其余占位
+      final content = (c.index == _currentChapterIndex) ? _content : '';
+      return RendererChapter(
+        index: c.index,
+        title: c.title,
+        content: content,
+      );
+    }).toList();
+
+    return buildBookRenderer(
+      format: format,
+      chapters: rendererChapters,
+      currentIndex: _currentChapterIndex,
+      theme: theme,
+      fontSize: _fontSize,
+      lineHeight: _lineHeight,
+      onPrevChapter: _goToPrev,
+      onNextChapter: _goToNext,
     );
   }
 
