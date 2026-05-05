@@ -15,4 +15,5 @@ type Book struct {
 	Category    Category `json:"category" gorm:"foreignKey:CategoryID"`
 	Tags        []*Tag   `json:"tags" gorm:"many2many:book_tags;"`
 	Content     string   `json:"content" gorm:"type:longtext"`
+	UserID      string   `json:"user_id" gorm:"size:64;index"` // 上传/拥有者用户ID
 }

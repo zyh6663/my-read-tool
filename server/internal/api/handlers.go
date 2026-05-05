@@ -2,8 +2,6 @@ package api
 
 import (
 	"net/http"
-	"os"
-	"strconv"
 
 	"purereader-server/internal/models"
 	"purereader-server/internal/services"
@@ -65,7 +63,7 @@ func GetBooks(c *gin.Context) {
 			IsPrivate:   b.IsPrivate,
 			CategoryID:  b.CategoryID,
 			Category:    b.Category,
-			HasChapters: b.Format == "txt",
+			HasChapters: b.Format == "txt" || len(b.Content) > 0,
 		})
 	}
 
@@ -87,25 +85,8 @@ func GetBookByID(c *gin.Context) {
 		return
 	}
 
-	// Build response with table of contents for TXT files
-	type TOCItem struct {
-		Index int    `json:"index"`
-		Title string `json:"title"`
-	}
-
-	var toc []TOCItem
-
-	if book.Format == "txt" {
-		_, parsedTOC, err := services.ParseTXTFile(book.FilePath)
-		if err == nil {
-			for _, ci := range parsedTOC {
-				toc = append(toc, TOCItem{
-					Index: ci.Index,
-					Title: ci.Title,
-				})
-			}
-		}
-	}
+	// Build TOC from stored chapters or on-disk parsing
+	toc := buildTOC(book)
 
 	type BookDetail struct {
 		ID          uint            `json:"id"`
@@ -135,7 +116,7 @@ func GetBookByID(c *gin.Context) {
 		CategoryID:  book.CategoryID,
 		Category:    book.Category,
 		Tags:        book.Tags,
-		HasChapters: book.Format == "txt",
+		HasChapters: book.Format == "txt" || len(book.Content) > 0,
 		TOC:         toc,
 	}
 
@@ -157,20 +138,18 @@ func GetChapters(c *gin.Context) {
 		return
 	}
 
-	if book.Format != "txt" {
-		// For non-TXT books, return a single "chapter" entry
-		c.JSON(http.StatusOK, gin.H{
-			"chapters": []models.ChapterInfo{
-				{Index: 0, Title: book.Title},
-			},
-		})
-		return
+	var toc []models.ChapterInfo
+	var err error
+
+	if book.Format == "txt" {
+		_, toc, err = services.ParseTXTFile(book.FilePath)
+	} else {
+		toc, err = loadStoredTOC(book)
 	}
 
-	_, toc, err := services.ParseTXTFile(book.FilePath)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to parse book file",
+			"error": "Failed to parse book chapters",
 		})
 		return
 	}
@@ -193,51 +172,24 @@ func GetChapterByIndex(c *gin.Context) {
 		return
 	}
 
-	if book.Format != "txt" {
-		// For non-TXT books, return the whole file content
-		content, err := os.ReadFile(book.FilePath)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": "Failed to read book file",
-			})
-			return
-		}
-		c.JSON(http.StatusOK, gin.H{
-			"chapter": models.Chapter{
-				Index:   0,
-				Title:   book.Title,
-				Content: string(content),
-			},
-		})
-		return
+	var chapter models.Chapter
+	var err error
+
+	if book.Format == "txt" {
+		chapter, err = loadTXTChapter(book, indexStr)
+	} else {
+		chapter, err = loadStoredChapter(book, indexStr)
 	}
 
-	chapters, _, err := services.ParseTXTFile(book.FilePath)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to parse book file",
-		})
-		return
-	}
-
-	index, err := strconv.Atoi(indexStr)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid chapter index",
-		})
-		return
-	}
-
-	// Convert to 0-based index
-	if index < 0 || index >= len(chapters) {
 		c.JSON(http.StatusNotFound, gin.H{
-			"error": "Chapter not found",
+			"error": err.Error(),
 		})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"chapter": chapters[index],
+		"chapter": chapter,
 	})
 }
 
