@@ -12,6 +12,7 @@ import 'pages/category_page.dart';
 import 'pages/favorite_page.dart';
 import 'pages/home_page.dart';
 import 'pages/search_page.dart';
+import 'pages/source_manage_page.dart';
 import 'pages/tag_page.dart';
 import 'profile_page.dart';
 import 'settings_page.dart';
@@ -28,7 +29,7 @@ class MainHomePage extends StatefulWidget {
 
 class _MainHomeNavState extends State<MainHomePage> {
   int _currentIndex = 0;
-  static const List<String> _titles = ['首页', '书架', '我的', '设置', '收藏'];
+  static const List<String> _titles = ['首页', '书架', '我的', '设置', '收藏', '书源'];
 
   Future<void> _logout() async {
     await clearToken();
@@ -58,6 +59,7 @@ class _MainHomeNavState extends State<MainHomePage> {
       ProfilePage(controller: widget.controller, onLogout: _logout, onOpenSettings: _openSettings),
       SettingsPage(settings: settings, onChanged: widget.controller.updateSettings, onClearCache: _clearLocalCache, onExport: (text) async { await Clipboard.setData(ClipboardData(text: text)); }),
       FavoritePage(controller: widget.controller),
+      const SourceManagePage(),
     ];
 
     return AnimatedSwitcher(
@@ -98,6 +100,7 @@ class _MainHomeNavState extends State<MainHomePage> {
           NavigationDestination(icon: Icon(Icons.explore_outlined), label: '我的'),
           NavigationDestination(icon: Icon(Icons.settings_outlined), label: '设置'),
           NavigationDestination(icon: Icon(Icons.favorite_border), label: '收藏'),
+          NavigationDestination(icon: Icon(Icons.source_outlined), label: '书源'),
         ],
       ),
     );

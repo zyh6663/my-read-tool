@@ -28,6 +28,8 @@ func InitDB() {
 		&models.Progress{},
 		&models.BookShelf{},
 		&models.User{},
+		&models.BookSource{},
+		&models.OnlineBook{},
 	)
 	if err != nil {
 		log.Fatalf("failed to auto migrate: %v", err)
