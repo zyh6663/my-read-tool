@@ -1,10 +1,10 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../widgets/reading_bottom_bar.dart';
 
-/// PDF 分页渲染器。
+/// PDF 鍒嗛〉娓叉煋鍣ㄣ€?
 ///
-/// 后端为 PDF 每个页面返回一条章节记录（index 即页码，content 即该页文本），
-/// 本组件使用 PageView 提供左右滑动翻页体验，顶部显示页号指示器。
+/// 鍚庣涓?PDF 姣忎釜椤甸潰杩斿洖涓€鏉＄珷鑺傝褰曪紙index 鍗抽〉鐮侊紝content 鍗宠椤垫枃鏈級锛?
+/// 鏈粍浠朵娇鐢?PageView 鎻愪緵宸﹀彸婊戝姩缈婚〉浣撻獙锛岄《閮ㄦ樉绀洪〉鍙锋寚绀哄櫒銆?
 class PdfRenderer extends StatefulWidget {
   final List<RendererChapter> chapters;
   final int currentIndex;
@@ -44,7 +44,7 @@ class _PdfRendererState extends State<PdfRenderer> {
   @override
   void didUpdateWidget(covariant PdfRenderer oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // 当外部传入的 currentIndex 变化时，带动画跳转到目标页
+    // 褰撳閮ㄤ紶鍏ョ殑 currentIndex 鍙樺寲鏃讹紝甯﹀姩鐢昏烦杞埌鐩爣椤?
     if (oldWidget.currentIndex != widget.currentIndex) {
       final target = widget.currentIndex.clamp(0,
           widget.chapters.isEmpty ? 0 : widget.chapters.length - 1);
@@ -68,7 +68,7 @@ class _PdfRendererState extends State<PdfRenderer> {
     if (widget.chapters.isEmpty) {
       return Center(
         child: Text(
-          '暂无内容',
+          '鏆傛棤鍐呭',
           style: TextStyle(color: widget.theme.text, fontSize: widget.fontSize),
         ),
       );
@@ -79,7 +79,7 @@ class _PdfRendererState extends State<PdfRenderer> {
 
     return Column(
       children: [
-        // 顶部页码指示器
+        // 椤堕儴椤电爜鎸囩ず鍣?
         SafeArea(
           bottom: false,
           child: Container(
@@ -89,7 +89,7 @@ class _PdfRendererState extends State<PdfRenderer> {
             child: Row(
               children: [
                 Text(
-                  '第 ${safeIndex + 1} 页 / 共 ${widget.chapters.length} 页',
+                  '绗?${safeIndex + 1} 椤?/ 鍏?${widget.chapters.length} 椤?,
                   style: TextStyle(
                     fontSize: 13,
                     color: widget.theme.text.withAlpha(150),
@@ -97,17 +97,17 @@ class _PdfRendererState extends State<PdfRenderer> {
                   ),
                 ),
                 const Spacer(),
-                // 向左切换章节的回调（上一章末尾 → 回到上一页）
+                // 鍚戝乏鍒囨崲绔犺妭鐨勫洖璋冿紙涓婁竴绔犳湯灏?鈫?鍥炲埌涓婁竴椤碉級
                 IconButton(
                   icon: Icon(Icons.chevron_left,
                       size: 20, color: widget.theme.text),
-                  tooltip: '上一页',
+                  tooltip: '涓婁竴椤?,
                   onPressed: safeIndex > 0 ? _goToPreviousPage : widget.onPrevChapter,
                 ),
                 IconButton(
                   icon: Icon(Icons.chevron_right,
                       size: 20, color: widget.theme.text),
-                  tooltip: '下一页',
+                  tooltip: '涓嬩竴椤?,
                   onPressed: safeIndex < widget.chapters.length - 1
                       ? _goToNextPage
                       : widget.onNextChapter,
@@ -117,7 +117,7 @@ class _PdfRendererState extends State<PdfRenderer> {
           ),
         ),
 
-        // PageView 翻页区域
+        // PageView 缈婚〉鍖哄煙
         Expanded(
           child: PageView.builder(
             controller: _pageController,
@@ -132,7 +132,7 @@ class _PdfRendererState extends State<PdfRenderer> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // 页面标题
+                    // 椤甸潰鏍囬
                     if (page.title.isNotEmpty)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 12),
@@ -146,7 +146,7 @@ class _PdfRendererState extends State<PdfRenderer> {
                           ),
                         ),
                       ),
-                    // 页面内容
+                    // 椤甸潰鍐呭
                     SelectableText(
                       page.content,
                       style: TextStyle(

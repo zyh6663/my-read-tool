@@ -1,9 +1,9 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../widgets/reading_bottom_bar.dart';
 
-/// TXT 滚动渲染器。
+/// TXT 婊氬姩娓叉煋鍣ㄣ€?
 ///
-/// 保持传统的整章单页滚动模式，适合纯文本阅读。
+/// 淇濇寔浼犵粺鐨勬暣绔犲崟椤垫粴鍔ㄦā寮忥紝閫傚悎绾枃鏈槄璇汇€?
 class TxtRenderer extends StatelessWidget {
   final List<RendererChapter> chapters;
   final int currentIndex;
@@ -27,7 +27,7 @@ class TxtRenderer extends StatelessWidget {
     if (chapter == null) {
       return Center(
         child: Text(
-          '暂无内容',
+          '鏆傛棤鍐呭',
           style: TextStyle(color: theme.text, fontSize: fontSize),
         ),
       );
@@ -39,7 +39,7 @@ class TxtRenderer extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 章节标题
+          // 绔犺妭鏍囬
           Padding(
             padding: const EdgeInsets.only(
                 bottom: 20, left: 24, right: 24),
@@ -53,7 +53,7 @@ class TxtRenderer extends StatelessWidget {
               ),
             ),
           ),
-          // 正文内容（可选择复制）
+          // 姝ｆ枃鍐呭锛堝彲閫夋嫨澶嶅埗锛?
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: SelectableText(
@@ -67,15 +67,15 @@ class TxtRenderer extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 40),
-          // 底部进度提示
+          // 搴曢儴杩涘害鎻愮ず
           if (chapters.isNotEmpty)
             Center(
               child: Opacity(
                 opacity: 0.5,
                 child: Text(
                   currentIndex < chapters.length - 1
-                      ? '— 继续阅读 —'
-                      : '— 全文完 —',
+                      ? '鈥?缁х画闃呰 鈥?
+                      : '鈥?鍏ㄦ枃瀹?鈥?,
                   style: TextStyle(fontSize: 14, color: theme.text),
                 ),
               ),
@@ -84,7 +84,7 @@ class TxtRenderer extends StatelessWidget {
           if (chapters.isNotEmpty)
             Center(
               child: Text(
-                '第 ${currentIndex + 1} 章 / 共 ${chapters.length} 章',
+                '绗?${currentIndex + 1} 绔?/ 鍏?${chapters.length} 绔?,
                 style: TextStyle(
                   fontSize: 12,
                   color: theme.text.withAlpha(100),

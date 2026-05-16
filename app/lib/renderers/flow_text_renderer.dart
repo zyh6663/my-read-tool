@@ -1,12 +1,12 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
 import '../widgets/reading_bottom_bar.dart';
 
-/// EPUB / MOBI 富文本渲染器。
+/// EPUB / MOBI 瀵屾枃鏈覆鏌撳櫒銆?
 ///
-/// 后端返回的 EPUB 章节内容为 HTML 片段，
-/// 本组件使用 [HtmlWidget] 将其解析为 Flutter Widget，
-/// 并统一应用阅读主题颜色与字号。
+/// 鍚庣杩斿洖鐨?EPUB 绔犺妭鍐呭涓?HTML 鐗囨锛?
+/// 鏈粍浠朵娇鐢?[HtmlWidget] 灏嗗叾瑙ｆ瀽涓?Flutter Widget锛?
+/// 骞剁粺涓€搴旂敤闃呰涓婚棰滆壊涓庡瓧鍙枫€?
 class FlowTextRenderer extends StatelessWidget {
   final List<RendererChapter> chapters;
   final int currentIndex;
@@ -34,7 +34,7 @@ class FlowTextRenderer extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (chapter != null) ...[
-            // 章节小标题（灰色辅助文字）
+            // 绔犺妭灏忔爣棰橈紙鐏拌壊杈呭姪鏂囧瓧锛?
             Padding(
               padding: const EdgeInsets.only(bottom: 8, left: 24, right: 24),
               child: Text(
@@ -48,7 +48,7 @@ class FlowTextRenderer extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            // 章节主标题
+            // 绔犺妭涓绘爣棰?
             Padding(
               padding: const EdgeInsets.only(bottom: 20, left: 24, right: 24),
               child: Text(
@@ -62,7 +62,7 @@ class FlowTextRenderer extends StatelessWidget {
               ),
             ),
           ],
-          // HTML 内容渲染
+          // HTML 鍐呭娓叉煋
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: HtmlWidget(
@@ -74,7 +74,7 @@ class FlowTextRenderer extends StatelessWidget {
                 letterSpacing: 0.3,
               ),
               customStylesBuilder: (element) {
-                // 统一所有文本颜色以适配阅读主题
+                // 缁熶竴鎵€鏈夋枃鏈鑹蹭互閫傞厤闃呰涓婚
                 return {'color': _colorToHex(theme.text)};
               },
             ),
@@ -85,7 +85,7 @@ class FlowTextRenderer extends StatelessWidget {
               child: Opacity(
                 opacity: 0.5,
                 child: Text(
-                  currentIndex < chapters.length - 1 ? '— 继续阅读 —' : '— 全文完 —',
+                  currentIndex < chapters.length - 1 ? '鈥?缁х画闃呰 鈥? : '鈥?鍏ㄦ枃瀹?鈥?,
                   style: TextStyle(fontSize: 14, color: theme.text),
                 ),
               ),
@@ -94,7 +94,7 @@ class FlowTextRenderer extends StatelessWidget {
           if (chapters.isNotEmpty)
             Center(
               child: Text(
-                '第 ${currentIndex + 1} 章 / 共 ${chapters.length} 章',
+                '绗?${currentIndex + 1} 绔?/ 鍏?${chapters.length} 绔?,
                 style: TextStyle(
                   fontSize: 12,
                   color: theme.text.withAlpha(100),
@@ -108,13 +108,13 @@ class FlowTextRenderer extends StatelessWidget {
     );
   }
 
-  /// 获取当前章节，越界时返回 null
+  /// 鑾峰彇褰撳墠绔犺妭锛岃秺鐣屾椂杩斿洖 null
   RendererChapter? get _currentChapter {
     if (currentIndex < 0 || currentIndex >= chapters.length) return null;
     return chapters[currentIndex];
   }
 
-  /// 将 Color 转为 #RRGGBB 十六进制字符串，用于内联 CSS
+  /// 灏?Color 杞负 #RRGGBB 鍗佸叚杩涘埗瀛楃涓诧紝鐢ㄤ簬鍐呰仈 CSS
   String _colorToHex(Color c) {
     return '#${c.r.toRadixString(16).padLeft(2, '0')}'
         '${c.g.toRadixString(16).padLeft(2, '0')}'
