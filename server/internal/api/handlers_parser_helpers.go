@@ -23,6 +23,20 @@ type TOCItem struct {
 func buildTOC(book models.Book) []TOCItem {
 	var toc []TOCItem
 
+	if book.StorageType == "remote" {
+		reader := services.NewRemoteReader(book.RemoteURL)
+		remoteChapters, err := reader.GetChapters(book.FilePath)
+		if err == nil {
+			for _, rc := range remoteChapters {
+				toc = append(toc, TOCItem{
+					Index: rc.Index,
+					Title: rc.Title,
+				})
+			}
+		}
+		return toc
+	}
+
 	if book.Format == "txt" {
 		_, parsedTOC, err := services.ParseTXTFile(book.FilePath)
 		if err == nil {

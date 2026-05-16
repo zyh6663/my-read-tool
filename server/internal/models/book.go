@@ -10,6 +10,7 @@ type Book struct {
 	FilePath    string   `json:"file_path" gorm:"size:512;not null"`
 	Format      string   `json:"format" gorm:"size:32;not null"`
 	StorageType string   `json:"storage_type" gorm:"size:32;not null;default:local"`
+	RemoteURL   string   `json:"remote_url" gorm:"size:1024"`
 	IsPrivate   bool     `json:"is_private" gorm:"default:false"`
 	CategoryID  uint     `json:"category_id"`
 	Category    Category `json:"category" gorm:"foreignKey:CategoryID"`

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -142,7 +143,23 @@ func GetChapters(c *gin.Context) {
 	var toc []models.ChapterInfo
 	var err error
 
-	if book.Format == "txt" {
+	if book.StorageType == "remote" {
+		reader := services.NewRemoteReader(book.RemoteURL)
+		remoteChapters, err := reader.GetChapters(book.FilePath)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load remote chapters: " + err.Error()})
+			return
+		}
+		toc = make([]models.ChapterInfo, len(remoteChapters))
+		for i, rc := range remoteChapters {
+			toc[i] = models.ChapterInfo{
+				Index: rc.Index,
+				Title: rc.Title,
+			}
+		}
+		c.JSON(http.StatusOK, gin.H{"chapters": toc})
+		return
+	} else if book.Format == "txt" {
 		_, toc, err = services.ParseTXTFile(book.FilePath)
 	} else {
 		toc, err = loadStoredTOC(book)
@@ -175,6 +192,26 @@ func GetChapterByIndex(c *gin.Context) {
 
 	var chapter models.Chapter
 	var err error
+
+	if book.StorageType == "remote" {
+		reader := services.NewRemoteReader(book.RemoteURL)
+		index, err := strconv.Atoi(indexStr)
+		if err != nil {
+			c.JSON(400, gin.H{"error": "invalid chapter index"})
+			return
+		}
+		content, err := reader.GetChapter(book.FilePath, index)
+		if err != nil {
+			c.JSON(500, gin.H{"error": "Failed to load remote chapter: " + err.Error()})
+			return
+		}
+		c.JSON(200, gin.H{"chapter": models.Chapter{
+			Index:   index,
+			Title:   fmt.Sprintf("第%d章", index),
+			Content: content,
+		}})
+		return
+	}
 
 	if book.Format == "txt" {
 		chapter, err = loadTXTChapter(book, indexStr)

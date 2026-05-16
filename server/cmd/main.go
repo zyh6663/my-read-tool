@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/http"
+	"os"
 	"time"
 
 	"purereader-server/internal/api"
@@ -10,6 +11,14 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
+
+func getPort() string {
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	return "0.0.0.0:" + port
+}
 
 func main() {
 	database.InitDB()
@@ -35,6 +44,7 @@ func main() {
 	r.DELETE("/api/books/:id", api.DeleteBook)
 	r.POST("/api/scan", api.TriggerScan)
 	r.POST("/api/books/upload", api.UploadBook)
+	r.POST("/api/books/remote_import", api.RemoteImport)
 
 	searchHandler := api.NewSearchHandler()
 	r.GET("/api/v1/search", searchHandler.Search)
@@ -76,5 +86,5 @@ func main() {
 		auth.GET("/me", authHandler.GetMe)
 	}
 
-	if err := r.Run("0.0.0.0:8080"); err != nil { panic(err) }
+	if err := r.Run(getPort()); err != nil { panic(err) }
 }
