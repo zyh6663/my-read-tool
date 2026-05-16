@@ -43,6 +43,10 @@ class _SourceManagePageState extends State<SourceManagePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('书源管理'),
+        leading: const BackButton(),
+      ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : ListView.builder(

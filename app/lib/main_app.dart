@@ -49,7 +49,7 @@ class _MainHomeNavState extends State<MainHomePage> {
     final pages = [
       HomePage(
         onOpenBookshelf: () => setState(() => _currentIndex = 1),
-        onOpenSearch: () => setState(() => _currentIndex = 0),
+        onOpenSearch: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SearchPage())),
         onOpenProfile: () => setState(() => _currentIndex = 2),
         onBrowseCategory: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CategoryPage())),
         onBrowseTag: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const TagPage())),
@@ -105,9 +105,9 @@ class _MainHomeNavState extends State<MainHomePage> {
         destinations: const [
           NavigationDestination(icon: Icon(Icons.home_outlined), label: '首页'),
           NavigationDestination(icon: Icon(Icons.bookmark_outline), label: '书架'),
-          NavigationDestination(icon: Icon(Icons.favorite_border), label: '收藏'),
-          NavigationDestination(icon: Icon(Icons.settings_outlined), label: '设置'),
           NavigationDestination(icon: Icon(Icons.explore_outlined), label: '我的'),
+          NavigationDestination(icon: Icon(Icons.settings_outlined), label: '设置'),
+          NavigationDestination(icon: Icon(Icons.favorite_border), label: '收藏'),
           NavigationDestination(icon: Icon(Icons.source_outlined), label: '书源'),
         ],
       ),
