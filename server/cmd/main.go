@@ -44,10 +44,14 @@ func main() {
 
 	// 书架相关路由
 	bookShelfHandler := api.NewBookShelfHandler()
-	r.POST("/api/bookshelf/add", bookShelfHandler.AddToShelf)
-	r.DELETE("/api/bookshelf/remove/:id", bookShelfHandler.RemoveFromShelf)
-	r.GET("/api/bookshelf/list", bookShelfHandler.ListShelf)
-	r.GET("/api/bookshelf/check/:book_id", bookShelfHandler.CheckInShelf)
+	bookshelf := r.Group("/api/bookshelf")
+	bookshelf.Use(api.AuthMiddleware())
+	{
+		bookshelf.POST("/add", bookShelfHandler.AddToShelf)
+		bookshelf.DELETE("/remove/:id", bookShelfHandler.RemoveFromShelf)
+		bookshelf.GET("/list", bookShelfHandler.ListShelf)
+		bookshelf.GET("/check/:book_id", bookShelfHandler.CheckInShelf)
+	}
 
 	// 认证相关路由
 	authHandler := api.NewAuthHandler(database.DB)

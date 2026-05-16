@@ -152,6 +152,14 @@ func UploadBook(c *gin.Context) {
 		return
 	}
 
+	// 将上传的书自动加入当前用户书架，方便在书架页直接打开
+	if userID != "" && userID != "anonymous" {
+		shelf := models.BookShelf{UserID: userID, BookID: book.ID}
+		if err := database.DB.Where("user_id = ? AND book_id = ?", userID, book.ID).FirstOrCreate(&shelf, models.BookShelf{UserID: userID, BookID: book.ID}).Error; err != nil {
+			log.Printf("[Upload] failed to create shelf record: %v", err)
+		}
+	}
+
 	log.Printf("[Upload] Book saved: id=%d, title=%q, format=%s, chapters=%d, user=%s",
 		book.ID, book.Title, ext, len(parsed.Chapters), userID)
 

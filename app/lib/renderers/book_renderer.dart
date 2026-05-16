@@ -84,7 +84,6 @@ Widget buildBookRenderer({
       );
     case BookFormat.txt:
     case BookFormat.unknown:
-    default:
       return TxtRenderer(
         chapters: chapters,
         currentIndex: currentIndex,

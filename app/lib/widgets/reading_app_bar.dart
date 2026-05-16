@@ -2,11 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
-import 'reading_bottom_bar.dart'; // ReadingTheme
-
-// =====================================================================
-//  ReadingAppBar — 阅读页顶部导航栏（毛玻璃效果）
-// =====================================================================
+import 'reading_bottom_bar.dart';
 
 class ReadingAppBar extends StatelessWidget {
   final ReadingTheme theme;
@@ -28,49 +24,74 @@ class ReadingAppBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return ClipRect(
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+        filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
         child: Container(
           decoration: BoxDecoration(
-            color: theme.appBar.withAlpha(160),
+            gradient: LinearGradient(
+              colors: [
+                theme.appBar.withAlpha(190),
+                theme.appBar.withAlpha(150),
+              ],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
             border: Border(
-              bottom:
-                  BorderSide(color: theme.divider.withAlpha(80), width: 0.5),
+              bottom: BorderSide(color: theme.divider.withAlpha(90), width: 0.6),
             ),
           ),
           child: SafeArea(
             bottom: false,
             child: Padding(
-              padding: const EdgeInsets.only(left: 4, right: 4, top: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
               child: Row(
                 children: [
-                  IconButton(
-                    icon: Icon(Icons.arrow_back_rounded, color: theme.title),
-                    onPressed: onBackPressed,
-                  ),
-                  const SizedBox(width: 4),
+                  _IconGlassButton(icon: Icons.arrow_back_rounded, color: theme.title, onTap: onBackPressed),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       bookTitle,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: theme.title,
-                      ),
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: theme.title),
                     ),
                   ),
-                  IconButton(
-                    icon: Icon(
-                      isFavorited ? Icons.favorite : Icons.favorite_border,
-                      color: isFavorited ? Colors.red : theme.title,
-                    ),
-                    onPressed: onFavorite,
-                    tooltip: isFavorited ? '已加入书架' : '加入书架',
+                  _IconGlassButton(
+                    icon: isFavorited ? Icons.favorite : Icons.favorite_border,
+                    color: isFavorited ? Colors.redAccent : theme.title,
+                    onTap: onFavorite,
                   ),
                 ],
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _IconGlassButton extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _IconGlassButton({required this.icon, required this.color, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: onTap,
+        child: Container(
+          width: 42,
+          height: 42,
+          decoration: BoxDecoration(
+            color: Colors.white.withAlpha(24),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: Colors.white.withAlpha(25)),
+          ),
+          child: Icon(icon, color: color, size: 22),
         ),
       ),
     );

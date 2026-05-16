@@ -2,6 +2,7 @@ package api
 
 import (
 	"net/http"
+	"strconv"
 
 	"purereader-server/internal/models"
 	"purereader-server/internal/services"
@@ -193,8 +194,21 @@ func GetChapterByIndex(c *gin.Context) {
 	})
 }
 
-// extractUserID reads X-User-Id from request headers.
+// extractUserID resolves the current user from either the JWT auth middleware
+// or the legacy X-User-Id header used by older clients.
 func extractUserID(c *gin.Context) string {
+	if userID, exists := c.Get("user_id"); exists {
+		switch v := userID.(type) {
+		case string:
+			return v
+		case uint:
+			return strconv.FormatUint(uint64(v), 10)
+		case int:
+			return strconv.Itoa(v)
+		case int64:
+			return strconv.FormatInt(v, 10)
+		}
+	}
 	return c.GetHeader("X-User-Id")
 }
 

@@ -1,5 +1,6 @@
 ﻿import 'package:flutter/material.dart';
 import '../widgets/reading_bottom_bar.dart';
+import 'book_renderer.dart';
 
 /// PDF 鍒嗛〉娓叉煋鍣ㄣ€?
 ///
@@ -68,7 +69,7 @@ class _PdfRendererState extends State<PdfRenderer> {
     if (widget.chapters.isEmpty) {
       return Center(
         child: Text(
-          '鏆傛棤鍐呭',
+          '暂无内容',
           style: TextStyle(color: widget.theme.text, fontSize: widget.fontSize),
         ),
       );
@@ -89,7 +90,7 @@ class _PdfRendererState extends State<PdfRenderer> {
             child: Row(
               children: [
                 Text(
-                  '绗?${safeIndex + 1} 椤?/ 鍏?${widget.chapters.length} 椤?,
+                  '第 ${safeIndex + 1} 页 / 共 ${widget.chapters.length} 页',
                   style: TextStyle(
                     fontSize: 13,
                     color: widget.theme.text.withAlpha(150),
@@ -101,13 +102,13 @@ class _PdfRendererState extends State<PdfRenderer> {
                 IconButton(
                   icon: Icon(Icons.chevron_left,
                       size: 20, color: widget.theme.text),
-                  tooltip: '涓婁竴椤?,
+                  tooltip: '上一页',
                   onPressed: safeIndex > 0 ? _goToPreviousPage : widget.onPrevChapter,
                 ),
                 IconButton(
                   icon: Icon(Icons.chevron_right,
                       size: 20, color: widget.theme.text),
-                  tooltip: '涓嬩竴椤?,
+                  tooltip: '下一页',
                   onPressed: safeIndex < widget.chapters.length - 1
                       ? _goToNextPage
                       : widget.onNextChapter,
