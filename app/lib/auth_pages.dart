@@ -1,13 +1,13 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'animated_glass.dart';
 import 'config/api_config.dart';
 import 'glass_widgets.dart';
+import 'main_app.dart';
 import 'pages/auth_service.dart';
 
 Future<void> saveToken(String token) async {
@@ -126,7 +126,10 @@ class _LoginPageState extends State<LoginPage> {
       }
       AuthService.setLoggedIn(true);
       if (!mounted) return;
-      context.go('/');
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => ReaderRootApp()),
+        (route) => false,
+      );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))));

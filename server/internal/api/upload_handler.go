@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -178,18 +179,29 @@ func UploadBook(c *gin.Context) {
 // 优先从 AuthMiddleware 设置的 context value 中读取，
 // 其次从 X-User-Id 请求头中读取（兼容旧版调用）。
 func extractUserIDFromContext(c *gin.Context) string {
-	// 1. AuthMiddleware 注入
-	if uid, exists := c.Get("user_id"); exists {
-		if s, ok := uid.(string); ok && s != "" {
-			return s
+	uid, exists := c.Get("user_id")
+	if !exists {
+		if headerUID := c.GetHeader("X-User-Id"); headerUID != "" {
+			return headerUID
 		}
+		return "anonymous"
 	}
 
-	// 2. X-User-Id 请求头
-	if uid := c.GetHeader("X-User-Id"); uid != "" {
-		return uid
+	switch v := uid.(type) {
+	case string:
+		if v != "" {
+			return v
+		}
+	case uint:
+		return strconv.FormatUint(uint64(v), 10)
+	case int:
+		return strconv.Itoa(v)
+	case int64:
+		return strconv.FormatInt(v, 10)
 	}
 
-	// 3. 兜底：匿名用户
+	if headerUID := c.GetHeader("X-User-Id"); headerUID != "" {
+		return headerUID
+	}
 	return "anonymous"
 }

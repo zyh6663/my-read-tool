@@ -11,6 +11,7 @@ class SettingsPage extends StatelessWidget {
   final VoidCallback? onClearCache;
   final VoidCallback? onAboutTap;
   final Future<void> Function(String text)? onExport;
+  final VoidCallback? onManageSources;
 
   const SettingsPage({
     super.key,
@@ -19,6 +20,7 @@ class SettingsPage extends StatelessWidget {
     this.onClearCache,
     this.onAboutTap,
     this.onExport,
+    this.onManageSources,
   });
 
   @override
@@ -219,6 +221,12 @@ class SettingsPage extends StatelessWidget {
                 const SnackBar(content: Text('设置已复制到剪贴板')),
               );
             },
+          ),
+          _ActionTile(
+            title: '书源管理',
+            subtitle: '导入、查看和管理书源',
+            icon: Icons.source_outlined,
+            onTap: onManageSources,
           ),
           _ActionTile(
             title: '关于 PureReader',

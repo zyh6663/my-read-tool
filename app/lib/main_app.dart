@@ -49,17 +49,25 @@ class _MainHomeNavState extends State<MainHomePage> {
     final pages = [
       HomePage(
         onOpenBookshelf: () => setState(() => _currentIndex = 1),
-        onOpenSearch: () => setState(() => _currentIndex = 2),
-        onOpenProfile: () => setState(() => _currentIndex = 4),
+        onOpenSearch: () => setState(() => _currentIndex = 0),
+        onOpenProfile: () => setState(() => _currentIndex = 2),
         onBrowseCategory: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CategoryPage())),
         onBrowseTag: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const TagPage())),
       ),
       const BookShelfPage(userId: 'me', baseUrl: ApiConfig.baseUrl),
-      const SearchPage(),
       ProfilePage(controller: widget.controller, onLogout: _logout, onOpenSettings: _openSettings),
-      SettingsPage(settings: settings, onChanged: widget.controller.updateSettings, onClearCache: _clearLocalCache, onExport: (text) async { await Clipboard.setData(ClipboardData(text: text)); }),
+      SettingsPage(
+        settings: settings,
+        onChanged: widget.controller.updateSettings,
+        onClearCache: _clearLocalCache,
+        onExport: (text) async {
+          await Clipboard.setData(ClipboardData(text: text));
+        },
+        onManageSources: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SourceManagePage())),
+      ),
       FavoritePage(controller: widget.controller),
       const SourceManagePage(),
+      const SearchPage(),
     ];
 
     return AnimatedSwitcher(
@@ -97,9 +105,9 @@ class _MainHomeNavState extends State<MainHomePage> {
         destinations: const [
           NavigationDestination(icon: Icon(Icons.home_outlined), label: '首页'),
           NavigationDestination(icon: Icon(Icons.bookmark_outline), label: '书架'),
-          NavigationDestination(icon: Icon(Icons.explore_outlined), label: '我的'),
-          NavigationDestination(icon: Icon(Icons.settings_outlined), label: '设置'),
           NavigationDestination(icon: Icon(Icons.favorite_border), label: '收藏'),
+          NavigationDestination(icon: Icon(Icons.settings_outlined), label: '设置'),
+          NavigationDestination(icon: Icon(Icons.explore_outlined), label: '我的'),
           NavigationDestination(icon: Icon(Icons.source_outlined), label: '书源'),
         ],
       ),
