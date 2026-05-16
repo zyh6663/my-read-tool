@@ -15,4 +15,4 @@ go run main.go
 
 
 
-flutter run -d chrome
+flutter run -d chromeq
