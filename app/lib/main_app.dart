@@ -8,7 +8,11 @@ import 'app_controller.dart';
 import 'auth_pages.dart';
 import 'bookshelf_page.dart';
 import 'config/api_config.dart';
+import 'pages/category_page.dart';
 import 'pages/favorite_page.dart';
+import 'pages/home_page.dart';
+import 'pages/search_page.dart';
+import 'pages/tag_page.dart';
 import 'profile_page.dart';
 import 'settings_page.dart';
 
@@ -24,7 +28,7 @@ class MainHomePage extends StatefulWidget {
 
 class _MainHomeNavState extends State<MainHomePage> {
   int _currentIndex = 0;
-  static const List<String> _titles = ['书架', '我的', '设置', '收藏'];
+  static const List<String> _titles = ['首页', '书架', '我的', '设置', '收藏'];
 
   Future<void> _logout() async {
     await clearToken();
@@ -37,12 +41,20 @@ class _MainHomeNavState extends State<MainHomePage> {
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('已重置本地设置')));
   }
 
-  void _openSettings() => setState(() => _currentIndex = 2);
+  void _openSettings() => setState(() => _currentIndex = 3);
 
   Widget _buildAnimatedPage() {
     final settings = widget.controller.settings;
     final pages = [
+      HomePage(
+        onOpenBookshelf: () => setState(() => _currentIndex = 1),
+        onOpenSearch: () => setState(() => _currentIndex = 2),
+        onOpenProfile: () => setState(() => _currentIndex = 4),
+        onBrowseCategory: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CategoryPage())),
+        onBrowseTag: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const TagPage())),
+      ),
       const BookShelfPage(userId: 'me', baseUrl: ApiConfig.baseUrl),
+      const SearchPage(),
       ProfilePage(controller: widget.controller, onLogout: _logout, onOpenSettings: _openSettings),
       SettingsPage(settings: settings, onChanged: widget.controller.updateSettings, onClearCache: _clearLocalCache, onExport: (text) async { await Clipboard.setData(ClipboardData(text: text)); }),
       FavoritePage(controller: widget.controller),
@@ -71,7 +83,7 @@ class _MainHomeNavState extends State<MainHomePage> {
         centerTitle: true,
         automaticallyImplyLeading: false,
         actions: [
-          if (_currentIndex == 1)
+          if (_currentIndex == 2)
             IconButton(tooltip: '退出登录', icon: const Icon(Icons.logout), onPressed: _logout),
         ],
       ),
@@ -81,6 +93,7 @@ class _MainHomeNavState extends State<MainHomePage> {
         onDestinationSelected: (int index) => setState(() => _currentIndex = index),
         selectedIndex: _currentIndex,
         destinations: const [
+          NavigationDestination(icon: Icon(Icons.home_outlined), label: '首页'),
           NavigationDestination(icon: Icon(Icons.bookmark_outline), label: '书架'),
           NavigationDestination(icon: Icon(Icons.explore_outlined), label: '我的'),
           NavigationDestination(icon: Icon(Icons.settings_outlined), label: '设置'),

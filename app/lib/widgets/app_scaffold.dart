@@ -22,8 +22,9 @@ class AppScaffold extends StatelessWidget {
         destinations: const [
           NavigationDestination(icon: Icon(Icons.home_outlined), label: '首页'),
           NavigationDestination(icon: Icon(Icons.bookmark_outline), label: '书架'),
-          NavigationDestination(icon: Icon(Icons.library_books_outlined), label: '书库'),
           NavigationDestination(icon: Icon(Icons.person_outline), label: '我的'),
+          NavigationDestination(icon: Icon(Icons.settings_outlined), label: '设置'),
+          NavigationDestination(icon: Icon(Icons.favorite_border), label: '收藏'),
         ],
       ),
     );

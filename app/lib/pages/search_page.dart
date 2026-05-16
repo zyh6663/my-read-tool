@@ -1,11 +1,6 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 
-import '../auth_pages.dart';
-import '../bookshelf_page.dart';
-import '../config/api_config.dart';
+import '../animated_glass.dart';
 import '../glass_widgets.dart';
 
 class SearchPage extends StatefulWidget {
@@ -15,205 +10,153 @@ class SearchPage extends StatefulWidget {
   State<SearchPage> createState() => _SearchPageState();
 }
 
-class _SearchPageState extends State<SearchPage> {
-  final TextEditingController _controller = TextEditingController();
-  final List<String> _recentQueries = <String>[];
-  List<ShelfBook> _books = [];
-  List<ShelfBook> _results = [];
-  bool _loading = false;
-  bool _loadedOnce = false;
-  String? _error;
-  String _query = '';
-  String _filter = '全部';
+class _SearchPageState extends State<SearchPage> with SingleTickerProviderStateMixin {
+  final TextEditingController _searchController = TextEditingController();
+  late final TabController _tabController;
+  final List<String> _recentQueries = ['科幻', '历史', '文学'];
 
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  List<ShelfBook> get _filteredResults {
-    Iterable<ShelfBook> books = _results;
-    if (_filter == 'EPUB') {
-      books = books.where((b) => b.isEpub);
-    } else if (_filter == 'TXT') {
-      books = books.where((b) => b.isTxt);
-    }
-    return books.toList();
-  }
-
-  Future<void> _loadBookshelf() async {
-    if (_loadedOnce) return;
-    try {
-      final token = await getToken();
-      final userId = await getUserId();
-      final uri = Uri.parse('${ApiConfig.baseUrl}/api/bookshelf/list');
-      final response = await http.get(uri, headers: {
-        'Content-Type': 'application/json',
-        if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
-        if (userId != null && userId.isNotEmpty) 'X-User-Id': userId,
-      });
-      if (response.statusCode == 200) {
-        final decoded = jsonDecode(response.body);
-        final List<dynamic> data = decoded is Map<String, dynamic>
-            ? (decoded['shelf'] as List<dynamic>? ?? decoded['data'] as List<dynamic>? ?? decoded['books'] as List<dynamic>? ?? const [])
-            : const [];
-        setState(() {
-          _books = data.map((e) => ShelfBook.fromJson(e as Map<String, dynamic>)).toList();
-          _loadedOnce = true;
-        });
-      }
-    } catch (_) {}
-  }
-
-  Future<void> _search() async {
-    final q = _controller.text.trim();
-    if (q.isEmpty) {
-      setState(() {
-        _query = '';
-        _results = [];
-      });
-      return;
-    }
-    setState(() {
-      _loading = true;
-      _error = null;
-      _query = q;
-      if (!_recentQueries.contains(q)) {
-        _recentQueries.insert(0, q);
-        if (_recentQueries.length > 6) _recentQueries.removeLast();
-      }
-    });
-    try {
-      await _loadBookshelf();
-      final qLower = q.toLowerCase();
-      final books = _books.where((b) => b.bookTitle.toLowerCase().contains(qLower) || b.bookAuthor.toLowerCase().contains(qLower)).toList();
-      setState(() {
-        _results = books;
-        _loading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _error = '网络错误: $e';
-        _loading = false;
-      });
-    }
-  }
+  final List<_SearchBook> _books = const [
+    _SearchBook(title: '三体', author: '刘慈欣', category: '科幻', tags: ['热门', '推荐']),
+    _SearchBook(title: '活着', author: '余华', category: '文学', tags: ['经典', '推荐']),
+    _SearchBook(title: '明朝那些事儿', author: '当年明月', category: '历史', tags: ['热门', '连载']),
+    _SearchBook(title: '未来简史', author: '尤瓦尔·赫拉利', category: '人文', tags: ['推荐', '思考']),
+    _SearchBook(title: '雪国', author: '川端康成', category: '文学', tags: ['经典']),
+  ];
 
   @override
   void initState() {
     super.initState();
-    _loadBookshelf();
+    _tabController = TabController(length: 3, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  List<_SearchBook> get _filteredBooks {
+    final q = _searchController.text.trim().toLowerCase();
+    final activeCategory = _tabController.index == 1 ? '文学' : _tabController.index == 2 ? '历史' : null;
+    return _books.where((book) {
+      final matchesQuery = q.isEmpty || book.title.toLowerCase().contains(q) || book.author.toLowerCase().contains(q) || book.tags.any((t) => t.toLowerCase().contains(q));
+      final matchesCategory = activeCategory == null || book.category == activeCategory;
+      return matchesQuery && matchesCategory;
+    }).toList();
+  }
+
+  void _submitSearch(String value) {
+    final q = value.trim();
+    if (q.isEmpty) return;
+    setState(() {
+      _recentQueries.remove(q);
+      _recentQueries.insert(0, q);
+      if (_recentQueries.length > 5) _recentQueries.removeLast();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final results = _filteredResults;
+    final books = _filteredBooks;
+    final theme = Theme.of(context);
     return SafeArea(
-      child: ListView(
-        padding: const EdgeInsets.all(16),
+      child: Column(
         children: [
-          GlassPanel(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                TextField(
-                  controller: _controller,
-                  textInputAction: TextInputAction.search,
-                  onSubmitted: (_) => _search(),
-                  decoration: InputDecoration(
-                    hintText: '搜索书名、作者',
-                    prefixIcon: const Icon(Icons.search_rounded),
-                    suffixIcon: _controller.text.isEmpty
-                        ? null
-                        : IconButton(
-                            icon: const Icon(Icons.clear_rounded),
-                            onPressed: () {
-                              _controller.clear();
-                              setState(() {
-                                _query = '';
-                                _results = [];
-                              });
-                            },
-                          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: GlassPanel(
+              child: Column(
+                children: [
+                  TextField(
+                    controller: _searchController,
+                    textInputAction: TextInputAction.search,
+                    onSubmitted: _submitSearch,
+                    onChanged: (_) => setState(() {}),
+                    decoration: InputDecoration(
+                      hintText: '搜索书名、作者、标签',
+                      prefixIcon: const Icon(Icons.search_rounded),
+                      suffixIcon: _searchController.text.isEmpty
+                          ? null
+                          : IconButton(
+                              icon: const Icon(Icons.clear_rounded),
+                              onPressed: () => setState(() => _searchController.clear()),
+                            ),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                Wrap(
+                  const SizedBox(height: 12),
+                  TabBar(
+                    controller: _tabController,
+                    onTap: (_) => setState(() {}),
+                    tabs: const [
+                      Tab(text: '全部'),
+                      Tab(text: '文学'),
+                      Tab(text: '历史'),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (_recentQueries.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Wrap(
                   spacing: 8,
                   runSpacing: 8,
-                  children: [
-                    ChoiceChip(label: const Text('全部'), selected: _filter == '全部', onSelected: (_) => setState(() => _filter = '全部')),
-                    ChoiceChip(label: const Text('EPUB'), selected: _filter == 'EPUB', onSelected: (_) => setState(() => _filter = 'EPUB')),
-                    ChoiceChip(label: const Text('TXT'), selected: _filter == 'TXT', onSelected: (_) => setState(() => _filter = 'TXT')),
-                  ],
+                  children: _recentQueries.map((q) => ActionChip(label: Text(q), onPressed: () => setState(() => _searchController.text = q))).toList(),
                 ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    onPressed: _loading ? null : _search,
-                    icon: _loading ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.search),
-                    label: const Text('搜索书架'),
-                  ),
-                ),
+              ),
+            ),
+          const SizedBox(height: 12),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              children: [
+                if (books.isEmpty)
+                  GlassPanel(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        children: [
+                          Icon(Icons.search_off_rounded, size: 48, color: theme.colorScheme.primary),
+                          const SizedBox(height: 12),
+                          const Text('没有找到相关书籍'),
+                        ],
+                      ),
+                    ),
+                  )
+                else
+                  ...books.map((book) => Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: GlassPanel(
+                          child: ListTile(
+                            leading: const Icon(Icons.menu_book_rounded),
+                            title: Text(book.title),
+                            subtitle: Text('${book.author} · ${book.category}'),
+                            trailing: Wrap(
+                              spacing: 6,
+                              children: book.tags.map((tag) => Chip(label: Text(tag), visualDensity: VisualDensity.compact)).toList(),
+                            ),
+                          ),
+                        ),
+                      )),
               ],
             ),
           ),
-          const SizedBox(height: 16),
-          if (_recentQueries.isNotEmpty && _query.isEmpty)
-            GlassPanel(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('最近搜索', style: Theme.of(context).textTheme.titleMedium),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: _recentQueries
-                        .map((q) => ActionChip(label: Text(q), onPressed: () { _controller.text = q; _search(); }))
-                        .toList(),
-                  ),
-                ],
-              ),
-            ),
-          const SizedBox(height: 16),
-          if (_error != null)
-            GlassPanel(child: Text(_error!))
-          else if (_loading)
-            const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator()))
-          else if (_query.isEmpty)
-            GlassPanel(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('输入关键词开始搜索', style: Theme.of(context).textTheme.titleMedium),
-                  const SizedBox(height: 8),
-                  Text('支持按书名和作者快速筛选你的书架内容。'),
-                  const SizedBox(height: 12),
-                  Text('当前书架共 ${_books.length} 本书', style: Theme.of(context).textTheme.bodySmall),
-                ],
-              ),
-            )
-          else if (results.isEmpty)
-            GlassPanel(child: Text('没有找到与“$_query”相关的书籍'))
-          else
-            ...results.map(
-              (book) => Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: GlassPanel(
-                  child: ListTile(
-                    leading: Icon(book.isEpub ? Icons.menu_book_rounded : Icons.text_snippet_rounded),
-                    title: Text(book.bookTitle),
-                    subtitle: Text(book.bookAuthor),
-                    trailing: Text(book.isEpub ? 'EPUB' : 'TXT'),
-                  ),
-                ),
-              ),
-            ),
         ],
       ),
     );
   }
+}
+
+class _SearchBook {
+  final String title;
+  final String author;
+  final String category;
+  final List<String> tags;
+
+  const _SearchBook({required this.title, required this.author, required this.category, required this.tags});
 }
