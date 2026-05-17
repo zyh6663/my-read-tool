@@ -72,10 +72,13 @@ class _SearchPageState extends State<SearchPage> {
       _results = [];
     });
 
+    // 如果未登录导致 _selectedSourceId 为 null，则硬编码使用书源 ID=1
+    final sourceId = _selectedSourceId?.toString() ?? '1';
+
     try {
       final results = await SearchService.search(
         keyword,
-        source: _selectedSourceId?.toString(),
+        source: sourceId,
       );
       if (!mounted) return;
       setState(() {
@@ -143,7 +146,7 @@ class _SearchPageState extends State<SearchPage> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.onSurface.withOpacity(0.2),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -170,7 +173,7 @@ class _SearchPageState extends State<SearchPage> {
               Text(
                 '来源: ${detail.sourceName}  ·  共 ${detail.chapterCount} 章',
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
               ),
 
@@ -207,7 +210,7 @@ class _SearchPageState extends State<SearchPage> {
                   trailing: Icon(
                     Icons.chevron_right,
                     size: 18,
-                    color: theme.colorScheme.onSurface.withOpacity(0.3),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
                   ),
                   onTap: () {
                     Navigator.of(ctx).pop();
@@ -304,6 +307,18 @@ class _SearchPageState extends State<SearchPage> {
               ),
             ),
 
+            // ---- 未登录提示 ----
+            if (!_loadingSources && _sources.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Text(
+                  '未登录，使用默认书源搜索',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                  ),
+                ),
+              ),
+
             // ---- 内容区 ----
             Expanded(child: _buildBody(theme)),
           ],
@@ -387,13 +402,13 @@ class _SearchPageState extends State<SearchPage> {
             Icon(
               Icons.search_off,
               size: 56,
-              color: theme.colorScheme.onSurface.withOpacity(0.3),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
             ),
             const SizedBox(height: 16),
             Text(
               '没有找到相关书籍',
               style: theme.textTheme.bodyLarge?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.5),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
               ),
             ),
           ],
@@ -410,13 +425,13 @@ class _SearchPageState extends State<SearchPage> {
             Icon(
               Icons.search,
               size: 56,
-              color: theme.colorScheme.onSurface.withOpacity(0.2),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
             ),
             const SizedBox(height: 16),
             Text(
               '输入关键词搜索书籍',
               style: theme.textTheme.bodyLarge?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.5),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
               ),
             ),
           ],
@@ -473,7 +488,7 @@ class _SearchResultTile extends StatelessWidget {
                           ? Image.network(
                               book.coverUrl,
                               fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) =>
+                              errorBuilder: (_, _, _) =>
                                   _fallbackCover(theme),
                             )
                           : _fallbackCover(theme),
@@ -497,7 +512,7 @@ class _SearchResultTile extends StatelessWidget {
                         Text(
                           book.author.isNotEmpty ? book.author : '未知作者',
                           style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurface.withOpacity(0.6),
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                           ),
                         ),
                       ],
@@ -511,7 +526,7 @@ class _SearchResultTile extends StatelessWidget {
                         vertical: 2,
                       ),
                       decoration: BoxDecoration(
-                        color: theme.colorScheme.primaryContainer.withOpacity(0.4),
+                        color: theme.colorScheme.primaryContainer.withValues(alpha: 0.4),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
@@ -524,7 +539,7 @@ class _SearchResultTile extends StatelessWidget {
                   const SizedBox(width: 4),
                   Icon(
                     Icons.chevron_right,
-                    color: theme.colorScheme.onSurface.withOpacity(0.3),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
                   ),
                 ],
               ),
@@ -539,11 +554,11 @@ class _SearchResultTile extends StatelessWidget {
     return Container(
       width: 44,
       height: 60,
-      color: theme.colorScheme.primaryContainer.withOpacity(0.3),
+      color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
       child: Icon(
         Icons.menu_book,
         size: 24,
-        color: theme.colorScheme.primary.withOpacity(0.5),
+        color: theme.colorScheme.primary.withValues(alpha: 0.5),
       ),
     );
   }

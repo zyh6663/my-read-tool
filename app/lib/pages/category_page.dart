@@ -1,14 +1,8 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 
 import '../animated_glass.dart';
 import '../glass_widgets.dart';
 import '../services/search_service.dart';
-
-/// 书源站地址
-const String _sourceBaseUrl = 'http://38.76.213.204:8899';
 
 /// 分类关键词映射表（顺序匹配，命中第一个就归类）
 const Map<String, List<String>> _categoryKeywords = {
@@ -151,14 +145,6 @@ class _BookItem {
         author: r.author,
         coverUrl: r.coverUrl,
       );
-
-  factory _BookItem.fromJson(Map<String, dynamic> json) => _BookItem(
-        sourceId: json['source_id'] as int? ?? 0,
-        sourceBookId: json['source_book_id'] as String? ?? '',
-        title: json['title'] as String? ?? '',
-        author: json['author'] as String? ?? '',
-        coverUrl: json['cover_url'] as String? ?? '',
-      );
 }
 
 /// ----------------------------------------------------------------
@@ -198,58 +184,48 @@ class _CategoryPageState extends State<CategoryPage> {
     _fetchAndClassify();
   }
 
-  /// 从书源站拉取书名列表并自动归类
+  /// 用 SearchService.search 搜索高频字获取书籍并自动归类
   Future<void> _fetchAndClassify() async {
+    final seen = <String>{};
+    final merged = <_BookItem>[];
+
     try {
-      // 尝试通过书源站的搜索接口获取书籍（空关键词获取尽可能多的结果）
-      final uri = Uri.parse('$_sourceBaseUrl/api/v1/search').replace(
-        queryParameters: {'keyword': ''},
-      );
-      final res = await http.get(uri).timeout(const Duration(seconds: 15));
-      if (res.statusCode != 200) {
-        throw Exception('书源站返回状态码 ${res.statusCode}');
+      // 用常见高频字搜索，快速获取大量书籍数据
+      var results = await SearchService.search('的', page: 1);
+      for (final r in results) {
+        if (seen.add(r.sourceBookId)) {
+          merged.add(_BookItem.fromSearchResult(r));
+        }
       }
-      final body = jsonDecode(res.body) as Map<String, dynamic>;
-      final data = body['data'] as List<dynamic>?;
-      if (data == null || data.isEmpty) {
-        throw Exception('书源站未返回任何书籍数据');
-      }
-      _allBooks = data
-          .cast<Map<String, dynamic>>()
-          .map(_BookItem.fromJson)
-          .toList();
-    } catch (e) {
-      // 若书源站直连失败，则回退到后端搜索接口获取一些常见关键词的结果
-      try {
-        final keywords = [
-          '修仙', '系统', '总裁', '校园', '重生', '穿越', '武侠', '玄幻',
-          '科幻', '末日', '都市', '历史', '后宫',
-        ];
-        final seen = <String>{};
-        final merged = <_BookItem>[];
-        for (final kw in keywords) {
-          try {
-            final results = await SearchService.search(kw, page: 1);
-            for (final r in results) {
-              if (seen.add(r.sourceBookId)) {
-                merged.add(_BookItem.fromSearchResult(r));
-              }
-            }
-          } catch (_) {
-            // 单个关键词失败继续尝试下一个
+
+      // 如果第一页数据太少，再拉一页
+      if (merged.length < 50) {
+        results = await SearchService.search('的', page: 2);
+        for (final r in results) {
+          if (seen.add(r.sourceBookId)) {
+            merged.add(_BookItem.fromSearchResult(r));
           }
         }
-        if (merged.isEmpty) throw Exception('所有搜索关键词均未返回结果');
-        _allBooks = merged;
-      } catch (e2) {
-        if (!mounted) return;
-        setState(() {
-          _loading = false;
-          _error = '无法连接书源站: ${e.toString().length > 200 ? e.toString().substring(0, 200) : e}';
-        });
-        return;
       }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = '搜索失败: ${e.toString().length > 200 ? e.toString().substring(0, 200) : e}';
+      });
+      return;
     }
+
+    if (merged.isEmpty) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = '未获取到任何书籍数据';
+      });
+      return;
+    }
+
+    _allBooks = merged;
 
     // 归类
     _grouped = {};
@@ -340,7 +316,7 @@ class _CategoryPageState extends State<CategoryPage> {
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
               itemCount: chips.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              separatorBuilder: (_, _) => const SizedBox(width: 8),
               itemBuilder: (context, index) {
                 final cat = chips[index];
                 final selected = cat == _selectedCategory;
@@ -366,7 +342,7 @@ class _CategoryPageState extends State<CategoryPage> {
                     child: Text(
                       '该分类下暂无书籍',
                       style: theme.textTheme.bodyLarge?.copyWith(
-                        color: theme.colorScheme.onSurface.withOpacity(0.5),
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                       ),
                     ),
                   )
@@ -401,9 +377,11 @@ class _CategoryPageState extends State<CategoryPage> {
       final detail = await SearchService.getDetail(book.sourceId, book.sourceBookId);
       if (!mounted) return;
       // 展示详情对话框
+      if (!context.mounted) return;
       _showBookDetail(context, detail);
     } catch (e) {
       if (!mounted) return;
+      if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('获取详情失败: $e')),
       );
@@ -434,7 +412,7 @@ class _CategoryPageState extends State<CategoryPage> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.onSurface.withOpacity(0.2),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -455,7 +433,7 @@ class _CategoryPageState extends State<CategoryPage> {
               Text(
                 '来源: ${detail.sourceName}  ·  共 ${detail.chapterCount} 章',
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
               ),
               if (detail.description.isNotEmpty) ...[
@@ -490,7 +468,7 @@ class _CategoryPageState extends State<CategoryPage> {
                   child: Text(
                     '… 还有 ${detail.chapters.length - 50} 章',
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurface.withOpacity(0.5),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                     ),
                   ),
                 ),
@@ -536,7 +514,7 @@ class _BookListTile extends StatelessWidget {
                           ? Image.network(
                               book.coverUrl,
                               fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => _fallbackCover(theme),
+                              errorBuilder: (_, _, _) => _fallbackCover(theme),
                             )
                           : _fallbackCover(theme),
                     ),
@@ -558,7 +536,7 @@ class _BookListTile extends StatelessWidget {
                         Text(
                           book.author.isNotEmpty ? book.author : '未知作者',
                           style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurface.withOpacity(0.6),
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                           ),
                         ),
                       ],
@@ -566,7 +544,7 @@ class _BookListTile extends StatelessWidget {
                   ),
                   Icon(
                     Icons.chevron_right,
-                    color: theme.colorScheme.onSurface.withOpacity(0.3),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
                   ),
                 ],
               ),
@@ -581,11 +559,11 @@ class _BookListTile extends StatelessWidget {
     return Container(
       width: 44,
       height: 60,
-      color: theme.colorScheme.primaryContainer.withOpacity(0.3),
+      color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
       child: Icon(
         Icons.menu_book,
         size: 24,
-        color: theme.colorScheme.primary.withOpacity(0.5),
+        color: theme.colorScheme.primary.withValues(alpha: 0.5),
       ),
     );
   }
