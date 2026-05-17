@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 import '../auth_pages.dart';
 import '../services/source_service.dart';
@@ -27,7 +28,27 @@ class _SourceImportDialogState extends State<SourceImportDialog> {
     setState(() => _loading = true);
     try {
       final raw = _controller.text.trim();
-      final jsonMap = jsonDecode(raw) as Map<String, dynamic>;
+      String body;
+      if (raw.startsWith('http://') || raw.startsWith('https://')) {
+        try {
+          final resp = await http.get(Uri.parse(raw));
+          if (resp.statusCode != 200) {
+            throw Exception('网络请求失败，状态码：${resp.statusCode}');
+          }
+          body = resp.body;
+        } catch (e) {
+          if (e is Exception) rethrow;
+          throw Exception('网络获取失败：$e');
+        }
+        try {
+          jsonDecode(body);
+        } catch (_) {
+          throw Exception('获取的内容不是合法 JSON');
+        }
+      } else {
+        body = raw;
+      }
+      final jsonMap = jsonDecode(body) as Map<String, dynamic>;
       final token = await getToken();
       if (token == null || token.isEmpty) throw Exception('未登录');
       final source = BookSource.fromJson(jsonMap);

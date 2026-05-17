@@ -50,7 +50,7 @@ func (rr *RemoteReader) GetChapters(bookPath string) ([]RemoteChapterInfo, error
 	var payload struct {
 		Chapters []RemoteChapterInfo `json:"chapters"`
 	}
-	endpoint := rr.baseURL() + "/api/books/" + url.PathEscape(bookPath) + "/chapters"
+	endpoint := rr.baseURL() + "/api/books/chapters?path=" + url.QueryEscape(bookPath)
 	if err := rr.getJSON(endpoint, &payload); err != nil {
 		return nil, err
 	}
@@ -58,7 +58,7 @@ func (rr *RemoteReader) GetChapters(bookPath string) ([]RemoteChapterInfo, error
 }
 
 func (rr *RemoteReader) GetChapter(bookPath string, chapterIndex int) (string, error) {
-	endpoint := rr.baseURL() + "/api/books/" + url.PathEscape(bookPath) + "/chapters/" + fmt.Sprint(chapterIndex)
+	endpoint := rr.baseURL() + "/api/books/chapter?path=" + url.QueryEscape(bookPath) + "&idx=" + fmt.Sprint(chapterIndex)
 	req, err := http.NewRequest(http.MethodGet, endpoint, nil)
 	if err != nil {
 		return "", err

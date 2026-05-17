@@ -4,7 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 class AboutPage extends StatelessWidget {
   static const String appName = 'HylaRead';
-  static const String version = '1.0.0';
+  static const String version = '1.1.0';
   static const String maker = 'zyh6663';
   static const String githubUrl = 'https://github.com/zyh6663/my-read-tool';
 
