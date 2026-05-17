@@ -28,6 +28,7 @@ type SearchRule struct {
 }
 
 type DetailRule struct {
+	URL                 string            `json:"url"`
 	ChapterListSelector string            `json:"chapter_list_selector"`
 	Fields              map[string]string `json:"fields"`
 }
@@ -78,7 +79,7 @@ func ReloadBuiltinSources() error {
 		if err != nil {
 			return err
 		}
-		// 先用 map 解析，把 rule_json 对象趋抂存化
+		// 先用 map 解析，把 rule_json 对象转成字符串
 		var raw map[string]interface{}
 		if err := json.Unmarshal(b, &raw); err != nil {
 			return fmt.Errorf("parse builtin source %s: %w", path, err)
