@@ -85,6 +85,13 @@ func searchSource(src LoadedSource, keyword string) ([]SearchResult, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// JSON 响应分支
+	if src.Rule.ResponseType == "json" && strings.HasPrefix(src.Rule.Search.ListSelector, "$.") {
+		return searchSourceJSON(src, body)
+	}
+
+	// 原有 HTML/goquery 分支
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(body))
 	if err != nil {
 		return nil, err
@@ -105,6 +112,76 @@ func searchSource(src LoadedSource, keyword string) ([]SearchResult, error) {
 		}
 	})
 	return results, nil
+}
+
+// searchSourceJSON 使用手写轻量 JSONPath 解析 JSON 响应
+// 只支持两层路径：$.arrayKey[*] 取列表，$.fieldName 取字段值
+func searchSourceJSON(src LoadedSource, body string) ([]SearchResult, error) {
+	var data map[string]interface{}
+	if err := json.Unmarshal([]byte(body), &data); err != nil {
+		return nil, fmt.Errorf("json unmarshal: %w", err)
+	}
+
+	// 解析 ListSelector，如 "$.books[*]" → 取 "books"
+	listKey := strings.TrimPrefix(src.Rule.Search.ListSelector, "$.")
+	listKey = strings.TrimSuffix(listKey, "[*]")
+	listKey = strings.TrimSpace(listKey)
+	if listKey == "" {
+		return nil, fmt.Errorf("empty list key in list_selector: %s", src.Rule.Search.ListSelector)
+	}
+
+	rawList, ok := data[listKey]
+	if !ok {
+		return nil, fmt.Errorf("key %q not found in json response", listKey)
+	}
+
+	arr, ok := rawList.([]interface{})
+	if !ok {
+		return nil, fmt.Errorf("key %q is not an array", listKey)
+	}
+
+	var results []SearchResult
+	for _, elem := range arr {
+		itemMap, ok := elem.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		item := SearchResult{SourceID: src.ID, SourceName: src.Name}
+		item.Title = jsonPathField(itemMap, src.Rule.Search.Fields["title"])
+		item.Author = jsonPathField(itemMap, src.Rule.Search.Fields["author"])
+		item.Description = jsonPathField(itemMap, src.Rule.Search.Fields["description"])
+		item.CoverURL = jsonPathField(itemMap, src.Rule.Search.Fields["cover_url"])
+		item.SourceBookID = jsonPathField(itemMap, src.Rule.Search.Fields["book_id"])
+		if item.SourceBookID != "" {
+			results = append(results, item)
+		}
+	}
+	return results, nil
+}
+
+// jsonPathField 从 item map 中按 "$.fieldName" 路径取值
+func jsonPathField(item map[string]interface{}, path string) string {
+	path = strings.TrimSpace(path)
+	if path == "" {
+		return ""
+	}
+	// 去掉 "$." 前缀
+	key := strings.TrimPrefix(path, "$.")
+	if key == "" {
+		return ""
+	}
+	val, ok := item[key]
+	if !ok {
+		return ""
+	}
+	switch v := val.(type) {
+	case string:
+		return strings.TrimSpace(v)
+	case float64:
+		return strings.TrimSpace(fmt.Sprintf("%v", v))
+	default:
+		return strings.TrimSpace(fmt.Sprintf("%v", v))
+	}
 }
 
 func GetBookDetail(sourceID uint, sourceBookID string) (*BookDetail, error) {

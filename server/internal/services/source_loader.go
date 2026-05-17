@@ -14,9 +14,10 @@ import (
 )
 
 type SourceRule struct {
-	Search  SearchRule  `json:"search"`
-	Detail  DetailRule  `json:"detail"`
-	Chapter ChapterRule `json:"chapter_content"`
+	Search       SearchRule  `json:"search"`
+	Detail       DetailRule  `json:"detail"`
+	Chapter      ChapterRule `json:"chapter_content"`
+	ResponseType string      `json:"response_type"` // "html" 或 "json"，默认 "html"
 }
 
 type SearchRule struct {
