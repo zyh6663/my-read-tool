@@ -71,7 +71,7 @@ class _MainHomeNavState extends State<MainHomePage> {
     ];
 
     return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 360),
+      duration: const Duration(milliseconds: 200),
       switchInCurve: Curves.easeOutCubic,
       switchOutCurve: Curves.easeInCubic,
       transitionBuilder: (child, animation) {
@@ -130,7 +130,7 @@ class _ReaderRootAppState extends State<ReaderRootApp> {
   @override
   void initState() {
     super.initState();
-    checkAuth();
+    Future.delayed(const Duration(milliseconds: 300), () => checkAuth());
     _controller.init();
   }
 
@@ -176,11 +176,17 @@ class _ReaderRootAppState extends State<ReaderRootApp> {
           colorScheme: lightScheme,
           useMaterial3: true,
           fontFamily: settings.fontFamily == 'system' ? null : settings.fontFamily,
+          pageTransitionsTheme: const PageTransitionsTheme(
+            builders: {TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(), TargetPlatform.iOS: FadeUpwardsPageTransitionsBuilder()},
+          ),
         );
         final baseDarkTheme = ThemeData(
           colorScheme: darkScheme,
           useMaterial3: true,
           fontFamily: settings.fontFamily == 'system' ? null : settings.fontFamily,
+          pageTransitionsTheme: const PageTransitionsTheme(
+            builders: {TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(), TargetPlatform.iOS: FadeUpwardsPageTransitionsBuilder()},
+          ),
         );
         return MaterialApp(
           title: 'PureReader',

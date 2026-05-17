@@ -257,8 +257,12 @@ class _RegisterPageState extends State<RegisterPage> {
       if (userJson != null) {
         await saveUserId((userJson['id'] ?? '').toString());
       }
+      AuthService.setLoggedIn(true);
       if (!mounted) return;
-      Navigator.of(context).pop(true);
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const ReaderRootApp()),
+        (route) => false,
+      );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))));

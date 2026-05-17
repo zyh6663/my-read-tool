@@ -8,7 +8,9 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -245,7 +247,77 @@ func readAttr(sel *goquery.Selection, selector, attr string) string {
 }
 
 func ImportBook(sourceID uint, sourceBookID string) (*models.Book, error) {
-	return nil, fmt.Errorf("not implemented")
+	detail, err := GetBookDetail(sourceID, sourceBookID)
+	if err != nil {
+		return nil, fmt.Errorf("get book detail: %w", err)
+	}
+
+	title := sanitizeFilename(detail.Title)
+	if title == "" {
+		return nil, fmt.Errorf("empty book title after sanitization")
+	}
+
+	// 跳过已存在的同名书籍
+	var existing models.Book
+	if err := database.DB.Where("title = ?", detail.Title).First(&existing).Error; err == nil {
+		return &existing, nil
+	}
+
+	// 创建本地存储目录
+	dir := filepath.Join("books_storage", title)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return nil, fmt.Errorf("create directory: %w", err)
+	}
+
+	combinedPath := filepath.Join(dir, title+".txt")
+	var combinedContent strings.Builder
+
+	for _, ch := range detail.Chapters {
+		content, err := GetChapterContent(sourceID, sourceBookID, ch.URL)
+		if err != nil {
+			content = fmt.Sprintf("[获取章节失败: %v]", err)
+		}
+
+		chapterFilename := fmt.Sprintf("%d_%s.txt", ch.Index, sanitizeFilename(ch.Title))
+		chapterPath := filepath.Join(dir, chapterFilename)
+		if err := os.WriteFile(chapterPath, []byte(content), 0644); err != nil {
+			return nil, fmt.Errorf("write chapter file %s: %w", chapterFilename, err)
+		}
+
+		combinedContent.WriteString(ch.Title)
+		combinedContent.WriteString("\n\n")
+		combinedContent.WriteString(content)
+		combinedContent.WriteString("\n\n")
+
+		// 延迟 100-200ms，避免被反爬
+		time.Sleep(time.Duration(100+ch.Index%100) * time.Millisecond)
+	}
+
+	if err := os.WriteFile(combinedPath, []byte(combinedContent.String()), 0644); err != nil {
+		return nil, fmt.Errorf("write combined file: %w", err)
+	}
+
+	book := &models.Book{
+		Title:       detail.Title,
+		Author:      detail.Author,
+		FilePath:    combinedPath,
+		Format:      "txt",
+		StorageType: "local",
+	}
+	if err := database.DB.Create(book).Error; err != nil {
+		return nil, fmt.Errorf("save book to database: %w", err)
+	}
+
+	return book, nil
+}
+
+func sanitizeFilename(name string) string {
+	// 替换文件名中的非法字符
+	replacer := strings.NewReplacer(
+		"/", "_", "\\", "_", ":", "_", "*", "_",
+		"?", "_", "\"", "_", "<", "_", ">", "_", "|", "_",
+	)
+	return replacer.Replace(strings.TrimSpace(name))
 }
 
 func NormalizeText(s string) string { return strings.Join(strings.Fields(s), " ") }

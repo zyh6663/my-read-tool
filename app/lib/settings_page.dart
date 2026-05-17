@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'animated_glass.dart';
 import 'app_settings.dart';
 import 'glass_widgets.dart';
+import 'pages/about_page.dart';
 
 class SettingsPage extends StatelessWidget {
   final AppSettings settings;
@@ -229,15 +230,12 @@ class SettingsPage extends StatelessWidget {
             onTap: onManageSources,
           ),
           _ActionTile(
-            title: '关于 PureReader',
-            subtitle: 'PureReader · 让阅读更轻松、更专注',
+            title: '关于',
+            subtitle: 'HylaRead · 让阅读更轻松、更专注',
             icon: Icons.info_outline,
             onTap: onAboutTap ?? () {
-              showAboutDialog(
-                context: context,
-                applicationName: 'PureReader',
-                applicationVersion: '1.0.0',
-                applicationLegalese: '© 2026 PureReader',
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const AboutPage()),
               );
             },
           ),
