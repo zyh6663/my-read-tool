@@ -193,7 +193,15 @@ func GetBookDetail(sourceID uint, sourceBookID string) (*BookDetail, error) {
 	if err := json.Unmarshal([]byte(src.RuleJSON), &rule); err != nil {
 		return nil, err
 	}
-	bookURL := resolveURL(src.BaseURL, sourceBookID)
+	// 使用 detail.url 模板构建 URL，支持 {book_id} 占位符
+	detailURL := rule.Detail.URL
+	if detailURL == "" {
+		detailURL = sourceBookID
+	}
+	bookURL := strings.ReplaceAll(detailURL, "{book_id}", url.QueryEscape(sourceBookID))
+	if strings.HasPrefix(bookURL, "/") {
+		bookURL = strings.TrimRight(src.BaseURL, "/") + bookURL
+	}
 	body, err := fetchHTML(bookURL)
 	if err != nil {
 		return nil, err
