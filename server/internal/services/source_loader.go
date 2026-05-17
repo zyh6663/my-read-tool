@@ -78,8 +78,23 @@ func ReloadBuiltinSources() error {
 		if err != nil {
 			return err
 		}
+		// 先用 map 解析，把 rule_json 对象趋抂存化
+		var raw map[string]interface{}
+		if err := json.Unmarshal(b, &raw); err != nil {
+			return fmt.Errorf("parse builtin source %s: %w", path, err)
+		}
+		if ruleObj, ok := raw["rule_json"]; ok {
+			if ruleBytes, err := json.Marshal(ruleObj); err == nil {
+				raw["rule_json"] = string(ruleBytes)
+			}
+		}
+		// 重新序列化后再反序列化到 BookSource
+		fixed, err := json.Marshal(raw)
+		if err != nil {
+			return fmt.Errorf("re-marshal builtin source %s: %w", path, err)
+		}
 		var src models.BookSource
-		if err := json.Unmarshal(b, &src); err != nil {
+		if err := json.Unmarshal(fixed, &src); err != nil {
 			return fmt.Errorf("parse builtin source %s: %w", path, err)
 		}
 		src.IsBuiltin = true
