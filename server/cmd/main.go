@@ -1,11 +1,13 @@
 package main
 
 import (
+	"log"
 	"net/http"
 	"os"
 	"time"
 
 	"purereader-server/internal/api"
+	"purereader-server/internal/services"
 	"purereader-server/pkg/database"
 
 	"github.com/gin-contrib/cors"
@@ -23,11 +25,17 @@ func getPort() string {
 func main() {
 	database.InitDB()
 
+	if err := services.ReloadBuiltinSources(); err != nil {
+		log.Printf("WARNING: failed to load builtin sources: %v", err)
+	} else {
+		log.Println("Builtin sources loaded successfully")
+	}
+
 	r := gin.Default()
 	r.Use(cors.New(cors.Config{
 		AllowAllOrigins:  true,
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"*"},
+		AllowHeaders:    []string{"*"},
 		ExposeHeaders:    []string{"Content-Length", "Content-Type"},
 		AllowCredentials: false,
 		MaxAge:           12 * time.Hour,
