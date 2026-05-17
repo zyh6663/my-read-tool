@@ -1,9 +1,31 @@
 {
-  "name": "笔趣阁",
-  "base_url": "https://www.biquge.com.cn",
-  "rule_json": "{\"search\":{\"url\":\"/search.html?keyword={keyword}\",\"method\":\"GET\",\"list_selector\":\".result-list .result-item\",\"fields\":{\"title\":\".result-game-item-title a\",\"author\":\".result-game-item-info .result-game-item-info-tag:nth-child(1) span:nth-child(2)\",\"description\":\".result-game-item-desc\",\"cover_url\":\".result-game-item-pic img\",\"book_id\":\".result-game-item-title a\"}},\"detail\":{\"chapter_list_selector\":\"#list dd a\",\"fields\":{\"title\":\"#info h1\",\"author\":\"#info p:nth-child(1)\",\"description\":\"#intro\",\"cover_url\":\"#fmimg img\"}},\"chapter_content\":{\"content_selector\":\"#content\",\"remove_selectors\":[\"script\",\"ins\",\"#content div\"]}}",
+  "name": "远程书库",
+  "base_url": "http://38.76.213.204:8899",
   "enabled": true,
   "priority": 10,
   "is_builtin": true,
-  "id": 0
+  "id": 0,
+  "rule_json": {
+    "response_type": "json",
+    "search": {
+      "url": "/api/books/search?q={keyword}",
+      "method": "GET",
+      "list_selector": "$.books[*]",
+      "name_selector": "$.name",
+      "book_id_selector": "$.path"
+    },
+    "detail": {
+      "url": "/api/books/detail?path={book_id}",
+      "method": "GET",
+      "chapter_list_selector": "div.chapter-list a.chapter-item",
+      "chapter_title_selector": "",
+      "chapter_url_selector": "",
+      "next_page_selector": ""
+    },
+    "chapter": {
+      "content_selector": "div.chapter-content",
+      "title_selector": "h1.chapter-title",
+      "remove_selectors": []
+    }
+  }
 }
