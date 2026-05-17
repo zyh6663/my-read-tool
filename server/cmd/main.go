@@ -46,6 +46,8 @@ func main() {
 	r.POST("/api/books/upload", api.UploadBook)
 	r.POST("/api/books/remote_import", api.RemoteImport)
 
+	r.Static("/books", "/mnt/books")
+
 	searchHandler := api.NewSearchHandler()
 	r.GET("/api/v1/search", searchHandler.Search)
 	r.GET("/api/v1/search/detail", searchHandler.Detail)
