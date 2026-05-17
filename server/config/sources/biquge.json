@@ -11,11 +11,13 @@
       "url": "/api/books/search?q={keyword}",
       "method": "GET",
       "list_selector": "$.books[*]",
-      "name_selector": "$.name",
-      "book_id_selector": "$.path"
+      "fields": {
+        "title": "$.name",
+        "book_id": "$.path"
+      }
     },
     "detail": {
-      "url": "/api/books/detail?path={book_id}",
+      "url": "/api/books/chapters?path={book_id}",
       "method": "GET",
       "chapter_list_selector": "div.chapter-list a.chapter-item",
       "chapter_title_selector": "",
