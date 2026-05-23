@@ -110,6 +110,7 @@ const Map<String, List<String>> _categoryKeywords = {
 /// 独立分类函数：按顺序匹配关键词，命中第一个就归入对应标签。
 /// 都不命中则归入"其他"。
 String classifyBook(String title) {
+  title = title.replaceAll('.txt', '');
   if (title.isEmpty) return "其他";
   for (final entry in _categoryKeywords.entries) {
     for (final keyword in entry.value) {
