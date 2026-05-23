@@ -1,4 +1,4 @@
-package com.purerade
+package com.bluser
 
 import io.flutter.embedding.android.FlutterActivity
 

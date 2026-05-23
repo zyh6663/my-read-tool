@@ -49,8 +49,7 @@ class _SourceImportDialogState extends State<SourceImportDialog> {
         body = raw;
       }
       final jsonMap = jsonDecode(body) as Map<String, dynamic>;
-      final token = await getToken();
-      if (token == null || token.isEmpty) throw Exception('未登录');
+final token = await getToken() ?? '';
       final source = BookSource.fromJson(jsonMap);
       await SourceService.importSource(token, source);
       if (!mounted) return;
