@@ -36,7 +36,6 @@ func (h *ImportHandler) Import(c *gin.Context) {
 		SourceID      uint   `json:"source_id"`
 		BookID        string `json:"book_id"`
 		ChapterRange  string `json:"chapter_range"`
-		AutoAddToShelf bool   `json:"auto_add_to_shelf"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil || req.SourceID == 0 || req.BookID == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
@@ -49,21 +48,19 @@ func (h *ImportHandler) Import(c *gin.Context) {
 	importTasks.Unlock()
 
 	go h.runImport(taskID, importRequest{
-		SourceID:       req.SourceID,
-		BookID:         req.BookID,
-		ChapterRange:   req.ChapterRange,
-		UserID:         extractUserID(c),
-		AutoAddToShelf: req.AutoAddToShelf,
+		SourceID:     req.SourceID,
+		BookID:       req.BookID,
+		ChapterRange: req.ChapterRange,
+		UserID:       extractUserID(c),
 	})
 	c.JSON(http.StatusAccepted, gin.H{"data": gin.H{"task_id": taskID}})
 }
 
 type importRequest struct {
-	SourceID      uint
-	BookID        string
-	ChapterRange  string
-	UserID        string
-	AutoAddToShelf bool
+	SourceID     uint
+	BookID       string
+	ChapterRange string
+	UserID       string
 }
 
 func (h *ImportHandler) runImport(taskID string, req importRequest) {
@@ -124,18 +121,15 @@ func (h *ImportHandler) runImport(taskID string, req importRequest) {
 	}
 	setTask(1, "completed", "", book.ID)
 
-	// Auto-add to shelf if requested
-	if req.AutoAddToShelf && req.UserID != "" {
-		var existing models.BookShelf
-		if err := database.DB.Where("user_id = ? AND book_id = ?", req.UserID, book.ID).First(&existing).Error; err != nil {
-			shelf := models.BookShelf{
-				UserID: req.UserID,
-				BookID: book.ID,
-			}
-			if err := database.DB.Create(&shelf).Error; err != nil {
-				fmt.Printf("import_handler: failed to auto-add book %d to shelf for user %s: %v\n", book.ID, req.UserID, err)
-			}
-		}
+	// Auto-add to shelf (fallback to "default" for unauthenticated)
+	shelfUserID := req.UserID
+	if shelfUserID == "" {
+		shelfUserID = "default"
+	}
+	var existing models.BookShelf
+	if err := database.DB.Where("user_id = ? AND book_id = ?", shelfUserID, book.ID).First(&existing).Error; err != nil {
+		shelf := models.BookShelf{UserID: shelfUserID, BookID: book.ID}
+		_ = database.DB.Create(&shelf).Error
 	}
 }
 
