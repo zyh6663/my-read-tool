@@ -89,7 +89,7 @@ class _SplashPageState extends State<SplashPage>
                             child: ShaderMask(
                               shaderCallback: (bounds) {
                                 return const LinearGradient(
-                                  colors: [Color(0xFFC9A96E), Color(0xFFE8D5B7)],
+                                  colors: [Color(0xFF4CAF50), Color(0xFF81C784)],
                                   begin: Alignment.topLeft,
                                   end: Alignment.bottomRight,
                                 ).createShader(bounds);
@@ -149,7 +149,7 @@ class _GoldParticlePainter extends CustomPainter {
       final x = cx + cos(p.angle) * dist;
       final y = cy + sin(p.angle) * dist;
       final opacity = (1.0 - progress).clamp(0.0, 1.0);
-      final gc = Color.lerp(const Color(0xFFC9A96E), const Color(0xFFE8D5B7), p.speed)!;
+      final gc = Color.lerp(const Color(0xFF4CAF50), const Color(0xFF81C784), p.speed)!;
       final paint = Paint()..color = gc.withAlpha((255 * opacity).round())..style = PaintingStyle.fill;
       final r = p.size * (1.0 - progress * 0.5);
       canvas.save();

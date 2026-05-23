@@ -127,22 +127,6 @@ class SettingsPage extends StatelessWidget {
                       },
                     ),
                     const SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
-                      initialValue: settings.backgroundMode,
-                      decoration: const InputDecoration(labelText: '背景风格', border: OutlineInputBorder()),
-                      items: const [
-                        DropdownMenuItem(value: 'dark', child: Text('暗宣纸')),
-                        DropdownMenuItem(value: 'warm', child: Text('暖木色')),
-                        DropdownMenuItem(value: 'light', child: Text('亮宣纸')),
-                        DropdownMenuItem(value: 'pine', child: Text('松石绿')),
-                        DropdownMenuItem(value: 'black', child: Text('纯黑金')),
-                      ],
-                      onChanged: (value) {
-                        if (value == null) return;
-                        onChanged(settings.copyWith(backgroundMode: value));
-                      },
-                    ),
-                    const SizedBox(height: 12),
                     Text('行距：${settings.lineHeight.toStringAsFixed(1)}'),
                     Slider(
                       value: settings.lineHeight,

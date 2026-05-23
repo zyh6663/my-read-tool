@@ -9,6 +9,7 @@ import 'app_controller.dart';
 import 'auth_pages.dart';
 import 'bookshelf_page.dart';
 import 'config/api_config.dart';
+import 'main.dart';
 import 'pages/category_page.dart';
 import 'pages/favorite_page.dart';
 import 'pages/home_page.dart';
@@ -19,30 +20,6 @@ import 'settings_page.dart';
 import 'widgets/ink_loading.dart';
 import 'widgets/page_flip_route.dart';
 import 'widgets/splash_page.dart';
-
-const _lightScheme = ColorScheme(
-  brightness: Brightness.light,
-  primary: Color(0xFF5B6ABF),
-  onPrimary: Colors.white,
-  secondary: Color(0xFF7C8ADB),
-  onSecondary: Colors.white,
-  surface: Color(0xFFF8F6F2),
-  onSurface: Color(0xFF2D2D2D),
-  error: Color(0xFFC44D4D),
-  onError: Colors.white,
-);
-
-const _darkScheme = ColorScheme(
-  brightness: Brightness.dark,
-  primary: Color(0xFF8B9AE0),
-  onPrimary: Color(0xFF1A1A2E),
-  secondary: Color(0xFFA0ADF0),
-  onSecondary: Color(0xFF1A1A2E),
-  surface: Color(0xFF1E1E2E),
-  onSurface: Color(0xFFE8E6E0),
-  error: Color(0xFFE06060),
-  onError: Color(0xFF1A1A2E),
-);
 
 const _navIcons = [Icons.home_rounded, Icons.bookmark_rounded, Icons.search_rounded, Icons.person_rounded];
 const _navLabels = ['首页', '书架', '搜索', '我的'];
@@ -222,48 +199,22 @@ class _ReaderRootAppState extends State<ReaderRootApp> {
       animation: _controller,
       builder: (context, _) {
         final settings = _controller.settings;
+        final isDark = settings.flutterThemeMode == ThemeMode.dark ||
+            (settings.flutterThemeMode == ThemeMode.system &&
+                MediaQuery.of(context).platformBrightness == Brightness.dark);
 
         final baseTheme = ThemeData(
-          colorScheme: _lightScheme,
+          colorScheme: ColorScheme.fromSeed(seedColor: kPrimaryGreen, brightness: isDark ? Brightness.dark : Brightness.light),
           useMaterial3: true,
+          scaffoldBackgroundColor: isDark ? kDarkBg : kLightBg,
           fontFamily: settings.fontFamily == 'system' ? GoogleFonts.notoSansSc().fontFamily : settings.fontFamily,
-          pageTransitionsTheme: const PageTransitionsTheme(
-            builders: {TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(), TargetPlatform.iOS: FadeUpwardsPageTransitionsBuilder()},
-          ),
-          navigationBarTheme: NavigationBarThemeData(
-            backgroundColor: Colors.transparent,
-            indicatorColor: _lightScheme.primary.withAlpha(30),
-          ),
-          appBarTheme: AppBarTheme(
-            backgroundColor: _lightScheme.surface.withAlpha(220),
-            foregroundColor: _lightScheme.onSurface,
-            elevation: 0,
-          ),
-        );
-
-        final darkTheme = ThemeData(
-          colorScheme: _darkScheme,
-          useMaterial3: true,
-          fontFamily: settings.fontFamily == 'system' ? GoogleFonts.notoSansSc().fontFamily : settings.fontFamily,
-          pageTransitionsTheme: const PageTransitionsTheme(
-            builders: {TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(), TargetPlatform.iOS: FadeUpwardsPageTransitionsBuilder()},
-          ),
-          navigationBarTheme: NavigationBarThemeData(
-            backgroundColor: Colors.transparent,
-            indicatorColor: _darkScheme.primary.withAlpha(30),
-          ),
-          appBarTheme: AppBarTheme(
-            backgroundColor: _darkScheme.surface.withAlpha(220),
-            foregroundColor: _darkScheme.onSurface,
-            elevation: 0,
-          ),
         );
 
         Widget home;
         if (!_splashDone) {
           home = SplashPage(onComplete: _onSplashComplete);
         } else if (_isChecking) {
-          home = Scaffold(backgroundColor: _darkScheme.surface, body: const Center(child: InkLoading()));
+          home = Scaffold(backgroundColor: isDark ? kDarkBg : kLightBg, body: const Center(child: InkLoading()));
         } else if (_isLoggedIn) {
           home = MainHomePage(controller: _controller, onLogout: () => setState(() { _isLoggedIn = false; _splashDone = false; }));
         } else {
@@ -274,7 +225,10 @@ class _ReaderRootAppState extends State<ReaderRootApp> {
           title: 'PureReader',
           debugShowCheckedModeBanner: false,
           theme: baseTheme,
-          darkTheme: darkTheme,
+          darkTheme: baseTheme.copyWith(
+            colorScheme: ColorScheme.fromSeed(seedColor: kPrimaryGreen, brightness: Brightness.dark),
+            scaffoldBackgroundColor: kDarkBg,
+          ),
           themeMode: settings.flutterThemeMode,
           builder: (context, child) {
             final mq = MediaQuery.of(context);
