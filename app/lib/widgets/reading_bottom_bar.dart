@@ -44,7 +44,7 @@ class ReadingBottomBar extends StatelessWidget {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
         child: Container(
-          height: 44,
+          height: 160,
           decoration: BoxDecoration(
             color: theme.appBar.withAlpha(220),
             border: Border(top: BorderSide(color: kGold.withAlpha(60), width: 0.6)),
