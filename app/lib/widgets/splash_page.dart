@@ -2,14 +2,13 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
-import '../auth_pages.dart';
 import '../main.dart';
-import '../main_app.dart';
 import 'fiber_noise.dart';
-import 'page_flip_route.dart';
 
 class SplashPage extends StatefulWidget {
-  const SplashPage({super.key});
+  final VoidCallback? onComplete;
+
+  const SplashPage({super.key, this.onComplete});
 
   @override
   State<SplashPage> createState() => _SplashPageState();
@@ -32,17 +31,11 @@ class _SplashPageState extends State<SplashPage>
     );
 
     _titleFade = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.2, 0.45, curve: Curves.easeOut),
-      ),
+      CurvedAnimation(parent: _controller, curve: const Interval(0.2, 0.45, curve: Curves.easeOut)),
     );
 
     _textFade = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.375, 0.55, curve: Curves.easeOut),
-      ),
+      CurvedAnimation(parent: _controller, curve: const Interval(0.375, 0.55, curve: Curves.easeOut)),
     );
 
     for (int i = 0; i < 80; i++) {
@@ -52,26 +45,9 @@ class _SplashPageState extends State<SplashPage>
     _controller.forward();
     _controller.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
-        _navigate();
+        widget.onComplete?.call();
       }
     });
-  }
-
-  Future<void> _navigate() async {
-    final token = await getToken();
-    if (!mounted) return;
-
-    final Widget destination;
-    if (token != null && token.isNotEmpty) {
-      destination = const ReaderRootApp();
-    } else {
-      destination = const LoginPage();
-    }
-
-    if (!mounted) return;
-    Navigator.of(context).pushReplacement(
-      PageFlipRoute(page: destination),
-    );
   }
 
   @override
@@ -109,10 +85,7 @@ class _SplashPageState extends State<SplashPage>
                         Opacity(
                           opacity: _titleFade.value,
                           child: Transform.translate(
-                            offset: Offset(
-                              0,
-                              (1 - _titleFade.value) * 30,
-                            ),
+                            offset: Offset(0, (1 - _titleFade.value) * 30),
                             child: ShaderMask(
                               shaderCallback: (bounds) {
                                 return const LinearGradient(
@@ -121,15 +94,7 @@ class _SplashPageState extends State<SplashPage>
                                   end: Alignment.bottomRight,
                                 ).createShader(bounds);
                               },
-                              child: const Text(
-                                'PureReader',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 32,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: 4.0,
-                                ),
-                              ),
+                              child: const Text('PureReader', style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w700, letterSpacing: 4.0)),
                             ),
                           ),
                         ),
@@ -138,21 +103,9 @@ class _SplashPageState extends State<SplashPage>
                           opacity: _textFade.value,
                           child: Column(
                             children: [
-                              Text(
-                                '由 zyhly（zyh663 / zyh）独立编写',
-                                style: TextStyle(
-                                  color: Colors.grey[600],
-                                  fontSize: 12,
-                                ),
-                              ),
+                              Text('由 zyhly（zyh663 / zyh）独立编写', style: TextStyle(color: Colors.grey[600], fontSize: 12)),
                               const SizedBox(height: 4),
-                              Text(
-                                '本软件遵循 MIT 开源协议',
-                                style: TextStyle(
-                                  color: Colors.grey[600],
-                                  fontSize: 12,
-                                ),
-                              ),
+                              Text('本软件遵循 MIT 开源协议', style: TextStyle(color: Colors.grey[600], fontSize: 12)),
                             ],
                           ),
                         ),
@@ -173,7 +126,6 @@ class _GoldParticle {
   final double angle;
   final double speed;
   final double size;
-
   _GoldParticle(Random rng)
       : angle = rng.nextDouble() * 2 * pi,
         speed = 0.3 + rng.nextDouble() * 0.7,
@@ -184,50 +136,30 @@ class _GoldParticlePainter extends CustomPainter {
   final List<_GoldParticle> particles;
   final double progress;
   final Size size;
-
-  _GoldParticlePainter({
-    required this.particles,
-    required this.progress,
-    required this.size,
-  });
+  _GoldParticlePainter({required this.particles, required this.progress, required this.size});
 
   @override
   void paint(Canvas canvas, Size canvasSize) {
-    final centerX = canvasSize.width / 2;
-    final centerY = canvasSize.height / 2;
-    final maxRadius = canvasSize.shortestSide * 0.7;
-
+    final cx = canvasSize.width / 2;
+    final cy = canvasSize.height / 2;
+    final maxR = canvasSize.shortestSide * 0.7;
     for (final p in particles) {
       final eased = Curves.easeOutCubic.transform(progress);
-      final dist = eased * maxRadius * p.speed;
-      final x = centerX + cos(p.angle) * dist;
-      final y = centerY + sin(p.angle) * dist;
+      final dist = eased * maxR * p.speed;
+      final x = cx + cos(p.angle) * dist;
+      final y = cy + sin(p.angle) * dist;
       final opacity = (1.0 - progress).clamp(0.0, 1.0);
-      final goldColor = Color.lerp(
-        const Color(0xFFC9A96E),
-        const Color(0xFFE8D5B7),
-        p.speed,
-      )!;
-      final paint = Paint()
-        ..color = goldColor.withAlpha((255 * opacity).round())
-        ..style = PaintingStyle.fill;
-
+      final gc = Color.lerp(const Color(0xFFC9A96E), const Color(0xFFE8D5B7), p.speed)!;
+      final paint = Paint()..color = gc.withAlpha((255 * opacity).round())..style = PaintingStyle.fill;
       final r = p.size * (1.0 - progress * 0.5);
       canvas.save();
       canvas.translate(x, y);
       canvas.rotate(p.angle + progress * 3);
-      final path = Path()
-        ..moveTo(0, -r)
-        ..lineTo(r * 0.8, 0)
-        ..lineTo(0, r)
-        ..lineTo(-r * 0.8, 0)
-        ..close();
-      canvas.drawPath(path, paint);
+      canvas.drawPath(Path()..moveTo(0, -r)..lineTo(r * 0.8, 0)..lineTo(0, r)..lineTo(-r * 0.8, 0)..close(), paint);
       canvas.restore();
     }
   }
 
   @override
-  bool shouldRepaint(covariant _GoldParticlePainter oldDelegate) =>
-      oldDelegate.progress != progress;
+  bool shouldRepaint(covariant _GoldParticlePainter o) => o.progress != progress;
 }

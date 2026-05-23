@@ -64,11 +64,44 @@ class _ReadingPageState extends State<ReadingPage> {
   bool _isFavorited = false;
   bool _isFavoriteLoading = false;
 
+  static const _themeModeMap = {
+    'dark': ReadingTheme.darkPaper,
+    'warm': ReadingTheme.warmWood,
+    'light': ReadingTheme.lightPaper,
+    'pine': ReadingTheme.pineGreen,
+    'black': ReadingTheme.pureBlackGold,
+  };
+  static const _themeToModeMap = {
+    ReadingTheme.darkPaper: 'dark',
+    ReadingTheme.warmWood: 'warm',
+    ReadingTheme.lightPaper: 'light',
+    ReadingTheme.pineGreen: 'pine',
+    ReadingTheme.pureBlackGold: 'black',
+  };
+
+  Future<void> _loadThemeFromSettings() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final mode = prefs.getString('backgroundMode') ?? 'dark';
+      if (mounted) setState(() => _currentTheme = _themeModeMap[mode] ?? ReadingTheme.darkPaper);
+    } catch (_) {}
+  }
+
+  Future<void> _saveThemeMode(ReadingTheme theme) async {
+    final mode = _themeToModeMap[theme] ?? 'dark';
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('backgroundMode', mode);
+    } catch (_) {}
+  }
+
   @override
   void initState() {
     super.initState();
+    _loadThemeFromSettings().then((_) {
+      _updateStatusBar();
+    });
     _loadToc();
-    _updateStatusBar();
     _checkShelfStatus();
   }
 
@@ -260,7 +293,7 @@ class _ReadingPageState extends State<ReadingPage> {
               Positioned(bottom: 0, left: 0, right: 0, child: ReadingBottomBar(
                 theme: theme, fontSize: _fontSize, lineHeight: _lineHeight,
                 currentChapterIndex: _currentChapterIndex, totalChapters: totalChapters,
-                onThemeChanged: (t) { setState(() => _currentTheme = t); _updateStatusBar(); },
+                onThemeChanged: (t) { setState(() => _currentTheme = t); _updateStatusBar(); _saveThemeMode(t); },
                 onFontSizeChanged: (v) => setState(() => _fontSize = v),
                 onLineHeightChanged: (v) => setState(() => _lineHeight = v),
                 onPrevChapter: _goToPrev, onNextChapter: _goToNext,

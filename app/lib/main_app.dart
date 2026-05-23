@@ -66,12 +66,7 @@ class MainHomePage extends StatefulWidget {
 class _MainHomeNavState extends State<MainHomePage> {
   int _currentIndex = 0;
 
-  static const _navIcons = [
-    Icons.home_rounded,
-    Icons.bookmark_rounded,
-    Icons.search_rounded,
-    Icons.person_rounded,
-  ];
+  static const _navIcons = [Icons.home_rounded, Icons.bookmark_rounded, Icons.search_rounded, Icons.person_rounded];
   static const _navLabels = ['首页', '书架', '搜索', '我的'];
 
   Future<void> _logout() async {
@@ -85,14 +80,12 @@ class _MainHomeNavState extends State<MainHomePage> {
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('已重置本地设置')));
   }
 
-  void _openProfile() => setState(() => _currentIndex = 3);
-
   Widget _buildAnimatedPage() {
     final pages = [
       HomePage(
         onOpenBookshelf: () => setState(() => _currentIndex = 1),
         onOpenSearch: () => setState(() => _currentIndex = 2),
-        onOpenProfile: _openProfile,
+        onOpenProfile: () => setState(() => _currentIndex = 3),
         onBrowseCategory: () => Navigator.of(context).push(PageFlipRoute(page: const CategoryPage())),
         onBrowseTag: () {},
       ),
@@ -186,6 +179,7 @@ class ReaderRootApp extends StatefulWidget {
 
 class _ReaderRootAppState extends State<ReaderRootApp> {
   final AppController _controller = AppController();
+  bool _splashDone = false;
   bool _isLoggedIn = false;
   bool _isChecking = true;
 
@@ -193,15 +187,20 @@ class _ReaderRootAppState extends State<ReaderRootApp> {
   void initState() {
     super.initState();
     _updateSystemBars();
-    Future.delayed(const Duration(milliseconds: 300), () => checkAuth());
     _controller.init();
   }
 
   void _updateSystemBars() {
-    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    final isLight = _controller.settings.backgroundMode == 'light';
+    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
       systemNavigationBarColor: Colors.transparent,
-      systemNavigationBarIconBrightness: Brightness.light,
+      systemNavigationBarIconBrightness: isLight ? Brightness.dark : Brightness.light,
     ));
+  }
+
+  void _onSplashComplete() {
+    setState(() => _splashDone = true);
+    checkAuth();
   }
 
   Future<void> checkAuth() async {
@@ -259,6 +258,17 @@ class _ReaderRootAppState extends State<ReaderRootApp> {
           ),
         );
 
+        Widget home;
+        if (!_splashDone) {
+          home = SplashPage(onComplete: _onSplashComplete);
+        } else if (_isChecking) {
+          home = Scaffold(backgroundColor: background, body: const Center(child: InkLoading()));
+        } else if (_isLoggedIn) {
+          home = MainHomePage(controller: _controller, onLogout: () => setState(() { _isLoggedIn = false; _splashDone = false; }));
+        } else {
+          home = LoginPage(onLogin: () => setState(() { _isLoggedIn = true; _isChecking = false; }));
+        }
+
         return MaterialApp(
           title: 'PureReader',
           debugShowCheckedModeBanner: false,
@@ -278,11 +288,7 @@ class _ReaderRootAppState extends State<ReaderRootApp> {
               child: Container(color: background, child: wrapped),
             );
           },
-          home: _isChecking
-              ? Scaffold(backgroundColor: background, body: const Center(child: InkLoading()))
-              : _isLoggedIn
-                  ? MainHomePage(controller: _controller, onLogout: () => setState(() => _isLoggedIn = false))
-                  : const SplashPage(),
+          home: home,
         );
       },
     );

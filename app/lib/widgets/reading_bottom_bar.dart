@@ -57,7 +57,7 @@ class ReadingBottomBar extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   _CustomizeRow(theme: theme, fontSize: fontSize, lineHeight: lineHeight, onThemeChanged: onThemeChanged, onFontSizeChanged: onFontSizeChanged, onLineHeightChanged: onLineHeightChanged),
-                  const SizedBox(height: 4),
+                  _ReadingStats(currentChapter: currentChapterIndex + 1, totalChapters: totalChapters, fontSize: fontSize, lineHeight: lineHeight, theme: theme),
                   Row(
                     children: [
                       _BottomBtn(icon: Icons.skip_previous_rounded, label: '上一章', enabled: currentChapterIndex > 0, onTap: currentChapterIndex > 0 ? onPrevChapter : null),
@@ -213,4 +213,27 @@ class _FontSizeBtn extends StatelessWidget {
   const _FontSizeBtn({required this.label, required this.onTap, required this.theme});
   @override
   Widget build(BuildContext context) => GestureDetector(onTap: onTap, child: Container(width: 28, height: 28, alignment: Alignment.center, decoration: BoxDecoration(border: Border.all(color: theme.divider), borderRadius: BorderRadius.circular(6)), child: Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: theme.text))));
+}
+
+class _ReadingStats extends StatelessWidget {
+  final int currentChapter;
+  final int totalChapters;
+  final double fontSize;
+  final double lineHeight;
+  final ReadingTheme theme;
+
+  const _ReadingStats({required this.currentChapter, required this.totalChapters, required this.fontSize, required this.lineHeight, required this.theme});
+
+  @override
+  Widget build(BuildContext context) {
+    final pct = totalChapters > 0 ? (currentChapter / totalChapters * 100).round() : 0;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Text(
+        '进度 $pct% · $currentChapter/$totalChapters 章 · ${fontSize.round()}sp · ${lineHeight.toStringAsFixed(1)}H',
+        style: TextStyle(fontSize: 10, color: theme.text.withAlpha(120)),
+        textAlign: TextAlign.center,
+      ),
+    );
+  }
 }

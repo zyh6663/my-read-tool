@@ -7,7 +7,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'animated_glass.dart';
 import 'config/api_config.dart';
 import 'glass_widgets.dart';
-import 'main_app.dart';
 import 'pages/auth_service.dart';
 
 Future<void> saveToken(String token) async {
@@ -89,7 +88,8 @@ class AuthUser {
 }
 
 class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+  final VoidCallback? onLogin;
+  const LoginPage({super.key, this.onLogin});
   @override
   State<LoginPage> createState() => _LoginPageState();
 }
@@ -126,10 +126,7 @@ class _LoginPageState extends State<LoginPage> {
       }
       AuthService.setLoggedIn(true);
       if (!mounted) return;
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => ReaderRootApp()),
-        (route) => false,
-      );
+      widget.onLogin?.call();
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))));
@@ -219,7 +216,8 @@ class _LoginPageState extends State<LoginPage> {
 }
 
 class RegisterPage extends StatefulWidget {
-  const RegisterPage({super.key});
+  final VoidCallback? onLogin;
+  const RegisterPage({super.key, this.onLogin});
   @override
   State<RegisterPage> createState() => _RegisterPageState();
 }
@@ -259,10 +257,7 @@ class _RegisterPageState extends State<RegisterPage> {
       }
       AuthService.setLoggedIn(true);
       if (!mounted) return;
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const ReaderRootApp()),
-        (route) => false,
-      );
+      widget.onLogin?.call();
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))));
