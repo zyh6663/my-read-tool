@@ -48,7 +48,6 @@ class ReadingPage extends StatefulWidget {
 
 class _ReadingPageState extends State<ReadingPage> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  final PageController _pageController = PageController();
   int _currentChapterIndex = 0;
   final List<_ChapterInfo> _chapters = [];
   String _content = '';
@@ -98,9 +97,7 @@ class _ReadingPageState extends State<ReadingPage> {
   @override
   void initState() {
     super.initState();
-    _loadThemeFromSettings().then((_) {
-      _updateStatusBar();
-    });
+    _loadThemeFromSettings().then((_) => _updateStatusBar());
     _loadToc();
     _checkShelfStatus();
   }
@@ -117,7 +114,6 @@ class _ReadingPageState extends State<ReadingPage> {
 
   @override
   void dispose() {
-    _pageController.dispose();
     super.dispose();
   }
 
@@ -125,7 +121,7 @@ class _ReadingPageState extends State<ReadingPage> {
     setState(() { _isLoadingToc = true; _error = null; });
     try {
       final uri = Uri.parse('$_kBookApiBaseUrl/api/books/${widget.bookId}/chapters');
-      final res = await http.get(uri, headers: {'X-User-Id': _globalDeviceId}).timeout(const Duration(seconds: 20));
+      final res = await http.get(uri, headers: {'X-User-Id': _globalDeviceId}).timeout(const Duration(seconds: 60));
       if (res.statusCode != 200) throw Exception('HTTP ${res.statusCode}');
       final body = jsonDecode(res.body) as Map<String, dynamic>;
       final list = body['chapters'] as List<dynamic>? ?? [];
@@ -152,7 +148,7 @@ class _ReadingPageState extends State<ReadingPage> {
     });
     try {
       final uri = Uri.parse('$_kBookApiBaseUrl/api/books/${widget.bookId}/chapters/$index');
-      final res = await http.get(uri, headers: {'X-User-Id': _globalDeviceId}).timeout(const Duration(seconds: 20));
+      final res = await http.get(uri, headers: {'X-User-Id': _globalDeviceId}).timeout(const Duration(seconds: 60));
       if (res.statusCode != 200) throw Exception('HTTP ${res.statusCode}');
       final body = jsonDecode(res.body) as Map<String, dynamic>;
       final chapter = _Chapter.fromJson(body['chapter'] as Map<String, dynamic>);
@@ -259,26 +255,7 @@ class _ReadingPageState extends State<ReadingPage> {
       body: SafeArea(
         child: Stack(
           children: [
-            Positioned.fill(
-              child: GestureDetector(
-                behavior: HitTestBehavior.translucent,
-                onTapUp: (details) {
-                  final width = MediaQuery.of(context).size.width;
-                  if (details.localPosition.dx < width / 3) {
-                    _goToPrev();
-                  } else if (details.localPosition.dx > width * 2 / 3) {
-                    _goToNext();
-                  } else {
-                    _toggleMenu();
-                  }
-                },
-                onScaleStart: (_) => _baseFontSize = _fontSize,
-                onScaleUpdate: (details) {
-                  setState(() => _fontSize = (_baseFontSize * details.scale).clamp(14.0, 26.0));
-                },
-                child: _buildContentBody(theme),
-              ),
-            ),
+            Positioned.fill(child: _buildContentBody(theme)),
             if (totalChapters > 1 && _showMenu)
               Positioned(right: 0, top: 0, bottom: 0, child: _buildProgressBar(progressFraction)),
             if (_showMenu)
@@ -346,10 +323,34 @@ class _ReadingPageState extends State<ReadingPage> {
       index: c.index, title: c.title,
       content: c.index == _currentChapterIndex ? _content : '',
     )).toList();
-    return buildBookRenderer(
+    final content = buildBookRenderer(
       format: format, chapters: rendererChapters, currentIndex: _currentChapterIndex,
       theme: theme, fontSize: _fontSize, lineHeight: _lineHeight,
       onPrevChapter: _goToPrev, onNextChapter: _goToNext,
+    );
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTapUp: (details) {
+        final w = MediaQuery.of(context).size.width;
+        if (details.localPosition.dx < w / 3) {
+          _goToPrev();
+        } else if (details.localPosition.dx > w * 2 / 3) {
+          _goToNext();
+        } else {
+          _toggleMenu();
+        }
+      },
+      onScaleStart: (_) => _baseFontSize = _fontSize,
+      onScaleUpdate: (details) {
+        setState(() => _fontSize = (_baseFontSize * details.scale).clamp(14.0, 26.0));
+      },
+      child: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 250),
+        switchInCurve: Curves.easeOutCubic,
+        switchOutCurve: Curves.easeInCubic,
+        transitionBuilder: (child, anim) => FadeTransition(opacity: anim, child: child),
+        child: KeyedSubtree(key: ValueKey(_currentChapterIndex), child: content),
+      ),
     );
   }
 }

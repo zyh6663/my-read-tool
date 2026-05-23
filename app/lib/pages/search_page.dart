@@ -6,6 +6,7 @@ import '../glass_widgets.dart';
 import '../reading_page.dart';
 import '../services/search_service.dart';
 import '../services/source_service.dart';
+import '../widgets/ink_loading.dart';
 
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key});
@@ -399,11 +400,7 @@ class _SearchPageState extends State<SearchPage> {
     if (_loadingSources) {
       return const Padding(
         padding: EdgeInsets.all(12),
-        child: SizedBox(
-          width: 20,
-          height: 20,
-          child: CircularProgressIndicator(strokeWidth: 2),
-        ),
+        child: InkLoading(size: 24),
       );
     }
 
@@ -429,7 +426,7 @@ class _SearchPageState extends State<SearchPage> {
   Widget _buildBody(ThemeData theme) {
     // 加载中
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: InkLoading());
     }
 
     // 错误

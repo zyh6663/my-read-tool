@@ -140,6 +140,7 @@ class _MainHomeNavState extends State<MainHomePage> {
   Widget _buildBottomNav() {
     return Container(
       height: 56,
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewPadding.bottom),
       decoration: BoxDecoration(
         color: kPaperWarm.withAlpha(230),
         border: Border(top: BorderSide(color: kGold.withAlpha(40))),

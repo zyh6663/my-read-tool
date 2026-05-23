@@ -2,6 +2,12 @@ import 'package:flutter/material.dart';
 
 import '../main.dart';
 
+Color _dynamicColor(String title) {
+  if (title.isEmpty) return kPaperWarm;
+  final hash = title.codeUnits.fold(0, (v, c) => v * 31 + c).abs();
+  return Color.fromARGB(220, 80 + hash % 80, 50 + (hash >> 8) % 90, 40 + (hash >> 16) % 100);
+}
+
 class BookCover extends StatelessWidget {
   final String title;
   final String? author;
@@ -28,7 +34,7 @@ class BookCover extends StatelessWidget {
         width: width,
         height: height,
         decoration: BoxDecoration(
-          color: kPaperWarm,
+          color: _dynamicColor(title),
           borderRadius: BorderRadius.circular(4),
           boxShadow: [
             BoxShadow(color: kGold.withAlpha(25), blurRadius: 8, offset: const Offset(2, 4)),
