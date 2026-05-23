@@ -261,10 +261,12 @@ class _BookShelfPageState extends State<BookShelfPage> {
           else
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 110),
-              sliver: SliverGrid.builder(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, childAspectRatio: 0.74, crossAxisSpacing: 12, mainAxisSpacing: 12),
+              sliver: SliverList.builder(
                 itemCount: books.length,
-                itemBuilder: (context, index) => _buildBookCard(context, books[index], index),
+                itemBuilder: (context, index) => Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: _buildBookCard(context, books[index], index),
+                ),
               ),
             ),
         ],
@@ -331,47 +333,45 @@ class _BookShelfPageState extends State<BookShelfPage> {
   }
 
   Widget _buildBookCard(BuildContext context, ShelfBook book, int index) {
-    return TweenAnimationBuilder<double>(
-      key: ValueKey(book.id),
-      tween: Tween(begin: 0.96, end: 1),
-      duration: Duration(milliseconds: 280 + index * 28),
-      curve: Curves.easeOutCubic,
-      builder: (context, value, child) => Transform.scale(scale: value, child: child),
-      child: SlideFadeIn(
-        child: GestureDetector(
+    return SlideFadeIn(
+      child: GlassPanel(
+        padding: const EdgeInsets.all(12),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
           onTap: () => _onTapBook(book),
           onLongPress: () => _showRemoveDialog(book),
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: kGold.withAlpha(60)),
-            ),
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              children: [
-                Container(
-                  width: 70, height: 70,
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: Color.fromARGB(255,
-                      80 + ((book.bookTitle.hashCode) & 0xFF) % 80,
-                      60 + ((book.bookTitle.hashCode >> 8) & 0xFF) % 80,
-                      40 + ((book.bookTitle.hashCode >> 16) & 0xFF) % 100,
-                    ),
-                    borderRadius: BorderRadius.circular(12),
+          child: Row(
+            children: [
+              Container(
+                width: 44, height: 60,
+                decoration: BoxDecoration(
+                  color: Color.fromARGB(255,
+                    80 + ((book.bookTitle.hashCode) & 0xFF) % 80,
+                    60 + ((book.bookTitle.hashCode >> 8) & 0xFF) % 80,
+                    40 + ((book.bookTitle.hashCode >> 16) & 0xFF) % 100,
                   ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    book.bookTitle,
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 9, color: Colors.white, fontWeight: FontWeight.w600, height: 1.2),
-                  ),
+                  borderRadius: BorderRadius.circular(6),
                 ),
-                const SizedBox(height: 10),
-              ],
-            ),
+                alignment: Alignment.center,
+                child: Text(book.bookTitle.isNotEmpty ? book.bookTitle[0] : '书',
+                  style: const TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold)),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(book.bookTitle, maxLines: 1, overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 4),
+                    Text(book.bookAuthor, maxLines: 1, overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Icon(Icons.chevron_right, color: Theme.of(context).colorScheme.onSurface.withAlpha(60)),
+            ],
           ),
         ),
       ),
