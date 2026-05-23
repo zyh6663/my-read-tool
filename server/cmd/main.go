@@ -53,6 +53,7 @@ func main() {
 	r.POST("/api/scan", api.TriggerScan)
 	r.POST("/api/books/upload", api.UploadBook)
 	r.POST("/api/books/remote_import", api.RemoteImport)
+	r.GET("/api/books/remote_list", api.RemoteListBooks)
 
 	r.Static("/books", "/mnt/books")
 

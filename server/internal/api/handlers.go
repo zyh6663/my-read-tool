@@ -366,6 +366,19 @@ func extractUserID(c *gin.Context) string {
 	return c.GetHeader("X-User-Id")
 }
 
+func parseOnlinePath(filePath string) (uint, string, error) {
+	trimmed := strings.TrimPrefix(filePath, "online://")
+	parts := strings.SplitN(trimmed, "/", 2)
+	if len(parts) != 2 {
+		return 0, "", fmt.Errorf("invalid online path: %s", filePath)
+	}
+	sourceID, err := strconv.ParseUint(parts[0], 10, 64)
+	if err != nil {
+		return 0, "", fmt.Errorf("invalid source ID in online path: %s", filePath)
+	}
+	return uint(sourceID), parts[1], nil
+}
+
 // GetProgress returns the reading progress for a given book (scoped to user).
 func GetProgress(c *gin.Context) {
 	id := c.Param("id")

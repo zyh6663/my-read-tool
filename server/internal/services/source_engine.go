@@ -408,3 +408,18 @@ func sanitizeFilename(name string) string {
 func NormalizeText(s string) string { return strings.Join(strings.Fields(s), " ") }
 
 func JoinURL(base string, elems ...string) string { return path.Join(append([]string{base}, elems...)...) }
+
+func ExtractChapterFromContent(content string, index int) (string, string, error) {
+	parts := strings.Split(content, "\n\n")
+	if index+1 >= len(parts) {
+		return "", "", fmt.Errorf("chapter index %d out of range (total parts: %d)", index, len(parts)-1)
+	}
+	block := parts[index+1]
+	firstNewline := strings.Index(block, "\n")
+	if firstNewline < 0 {
+		return "", block, nil
+	}
+	title := block[:firstNewline]
+	chapterContent := block[firstNewline+1:]
+	return chapterContent, title, nil
+}
