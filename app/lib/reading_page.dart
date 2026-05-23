@@ -79,7 +79,7 @@ class _ReadingPageState extends State<ReadingPage> {
     setState(() { _isLoadingToc = true; _error = null; });
     try {
       final uri = Uri.parse('$_kBookApiBaseUrl/api/books/${widget.bookId}/chapters');
-      final res = await http.get(uri, headers: {'X-User-Id': _globalDeviceId});
+      final res = await http.get(uri, headers: {'X-User-Id': _globalDeviceId}).timeout(const Duration(seconds: 20));
       if (res.statusCode != 200) throw Exception('HTTP ${res.statusCode}');
       final body = jsonDecode(res.body) as Map<String, dynamic>;
       final list = body['chapters'] as List<dynamic>? ?? [];
@@ -102,7 +102,7 @@ class _ReadingPageState extends State<ReadingPage> {
     setState(() { _currentChapterIndex = index; _isLoadingContent = true; _error = null; });
     try {
       final uri = Uri.parse('$_kBookApiBaseUrl/api/books/${widget.bookId}/chapters/$index');
-      final res = await http.get(uri, headers: {'X-User-Id': _globalDeviceId});
+      final res = await http.get(uri, headers: {'X-User-Id': _globalDeviceId}).timeout(const Duration(seconds: 20));
       if (res.statusCode != 200) throw Exception('HTTP ${res.statusCode}');
       final body = jsonDecode(res.body) as Map<String, dynamic>;
       final chapter = _Chapter.fromJson(body['chapter'] as Map<String, dynamic>);
@@ -150,7 +150,7 @@ class _ReadingPageState extends State<ReadingPage> {
     final token = await getToken();
     if (token == null) return;
     try {
-      final res = await http.get(Uri.parse('$_kBookApiBaseUrl/api/bookshelf/check/${widget.bookId}'), headers: {'Content-Type': 'application/json', 'X-User-Id': token});
+      final res = await http.get(Uri.parse('$_kBookApiBaseUrl/api/bookshelf/check/${widget.bookId}'), headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'});
       if (res.statusCode == 200) {
         final body = jsonDecode(res.body) as Map<String, dynamic>;
         if (!mounted) return;
@@ -169,7 +169,7 @@ class _ReadingPageState extends State<ReadingPage> {
     }
     setState(() => _isFavoriteLoading = true);
     try {
-      final res = await http.post(Uri.parse('$_kBookApiBaseUrl/api/bookshelf/add'), headers: {'Content-Type': 'application/json', 'X-User-Id': token}, body: jsonEncode({'book_id': widget.bookId}));
+      final res = await http.post(Uri.parse('$_kBookApiBaseUrl/api/bookshelf/add'), headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'}, body: jsonEncode({'book_id': widget.bookId}));
       if (!mounted) return;
       if (res.statusCode == 201 || res.statusCode == 409) {
         setState(() { _isFavorited = true; _isFavoriteLoading = false; });

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../config/api_config.dart';
+import '../auth_pages.dart';
 
 class SearchResult {
   final int sourceId;
@@ -98,7 +99,13 @@ class SearchService {
   static Future<ImportResponse> importBook(int sourceId, String bookId, {String? chapterRange, bool autoAddToShelf = false}) async {
     final payload = <String, dynamic>{'source_id': sourceId, 'book_id': bookId, 'auto_add_to_shelf': autoAddToShelf};
     if (chapterRange != null) payload['chapter_range'] = chapterRange;
-    final res = await http.post(Uri.parse('${ApiConfig.baseUrl}/api/v1/books/import'), headers: {'Content-Type': 'application/json'}, body: jsonEncode(payload));
+    final token = await getToken();
+    final headers = <String, String>{'Content-Type': 'application/json'};
+    if (token != null) {
+      headers['Authorization'] = 'Bearer $token';
+      headers['X-User-Id'] = token;
+    }
+    final res = await http.post(Uri.parse('${ApiConfig.baseUrl}/api/v1/books/import'), headers: headers, body: jsonEncode(payload));
     final body = jsonDecode(res.body) as Map<String, dynamic>;
     if (res.statusCode != 202) throw Exception(body['error'] ?? '导入失败');
     return ImportResponse.fromJson(body['data'] as Map<String, dynamic>);

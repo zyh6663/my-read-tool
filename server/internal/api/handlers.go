@@ -363,6 +363,14 @@ func extractUserID(c *gin.Context) string {
 			return strconv.FormatInt(v, 10)
 		}
 	}
+	if auth := c.GetHeader("Authorization"); auth != "" {
+		parts := strings.SplitN(auth, " ", 2)
+		if len(parts) == 2 && strings.EqualFold(parts[0], "Bearer") {
+			if userID, err := parseToken(parts[1]); err == nil {
+				return strconv.FormatUint(uint64(userID), 10)
+			}
+		}
+	}
 	return c.GetHeader("X-User-Id")
 }
 
