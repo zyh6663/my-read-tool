@@ -11,11 +11,47 @@ import 'bookshelf_page.dart';
 import 'config/api_config.dart';
 import 'main.dart';
 import 'pages/category_page.dart';
+import 'pages/favorite_page.dart';
+import 'pages/home_page.dart';
 import 'pages/search_page.dart';
 import 'pages/source_manage_page.dart';
+import 'profile_page.dart';
 import 'settings_page.dart';
 import 'widgets/ink_loading.dart';
 import 'widgets/page_flip_route.dart';
+import 'widgets/splash_page.dart';
+
+const _lightScheme = ColorScheme(
+  brightness: Brightness.light,
+  primary: kGold,
+  onPrimary: kPaperDark,
+  secondary: kVermilion,
+  onSecondary: kCloudWhite,
+  surface: Color(0xFFF5F0E8),
+  onSurface: kPaperDark,
+  error: kVermilion,
+  onError: kCloudWhite,
+);
+
+const _darkScheme = ColorScheme(
+  brightness: Brightness.dark,
+  primary: kGold,
+  onPrimary: kPaperDark,
+  secondary: kVermilion,
+  onSecondary: kPaperDark,
+  surface: kPaperWarm,
+  onSurface: kInkWarm,
+  error: kVermilion,
+  onError: kPaperDark,
+);
+
+Color _bgForMode(String mode) => switch (mode) {
+  'warm'  => const Color(0xFF2A221D),
+  'light' => const Color(0xFFF5F0E8),
+  'pine'  => const Color(0xFF1A2A1A),
+  'black' => const Color(0xFF000000),
+  _       => const Color(0xFF1A1210),
+};
 
 class MainHomePage extends StatefulWidget {
   final VoidCallback? onLogout;
@@ -31,11 +67,12 @@ class _MainHomeNavState extends State<MainHomePage> {
   int _currentIndex = 0;
 
   static const _navIcons = [
+    Icons.home_rounded,
     Icons.bookmark_rounded,
     Icons.search_rounded,
-    Icons.category_rounded,
+    Icons.person_rounded,
   ];
-  static const _navLabels = ['书架', '搜索', '分类'];
+  static const _navLabels = ['首页', '书架', '搜索', '我的'];
 
   Future<void> _logout() async {
     await clearToken();
@@ -48,11 +85,32 @@ class _MainHomeNavState extends State<MainHomePage> {
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('已重置本地设置')));
   }
 
+  void _openProfile() => setState(() => _currentIndex = 3);
+
   Widget _buildAnimatedPage() {
     final pages = [
+      HomePage(
+        onOpenBookshelf: () => setState(() => _currentIndex = 1),
+        onOpenSearch: () => setState(() => _currentIndex = 2),
+        onOpenProfile: _openProfile,
+        onBrowseCategory: () => Navigator.of(context).push(PageFlipRoute(page: const CategoryPage())),
+        onBrowseTag: () {},
+      ),
       const BookShelfPage(userId: 'me', baseUrl: ApiConfig.baseUrl),
       const SearchPage(),
-      const CategoryPage(),
+      ProfilePage(
+        controller: widget.controller,
+        onLogout: _logout,
+        onOpenSettings: () => Navigator.of(context).push(PageFlipRoute(page: SettingsPage(
+          settings: widget.controller.settings,
+          onChanged: widget.controller.updateSettings,
+          onClearCache: _clearLocalCache,
+          onExport: (text) async => await Clipboard.setData(ClipboardData(text: text)),
+          onManageSources: () => Navigator.of(context).push(PageFlipRoute(page: const SourceManagePage())),
+        ))),
+        onOpenFavorites: () => Navigator.of(context).push(PageFlipRoute(page: FavoritePage(controller: widget.controller))),
+        onOpenSources: () => Navigator.of(context).push(PageFlipRoute(page: const SourceManagePage())),
+      ),
     ];
 
     return AnimatedSwitcher(
@@ -79,24 +137,6 @@ class _MainHomeNavState extends State<MainHomePage> {
           title: Text(_navLabels[_currentIndex], style: const TextStyle(color: kInkWarm)),
           centerTitle: true,
           automaticallyImplyLeading: false,
-          actions: [
-            IconButton(
-              tooltip: '设置',
-              icon: const Icon(Icons.settings_rounded, color: kInkGray),
-              onPressed: () => Navigator.of(context).push(PageFlipRoute(page: SettingsPage(
-                settings: widget.controller.settings,
-                onChanged: widget.controller.updateSettings,
-                onClearCache: _clearLocalCache,
-                onExport: (text) async => await Clipboard.setData(ClipboardData(text: text)),
-                onManageSources: () => Navigator.of(context).push(PageFlipRoute(page: const SourceManagePage())),
-              ))),
-            ),
-            IconButton(
-              tooltip: '退出登录',
-              icon: const Icon(Icons.logout_rounded, color: kInkGray),
-              onPressed: _logout,
-            ),
-          ],
         ),
       ),
       body: _buildAnimatedPage(),
@@ -109,9 +149,7 @@ class _MainHomeNavState extends State<MainHomePage> {
       height: 56,
       decoration: BoxDecoration(
         color: kPaperWarm.withAlpha(230),
-        border: Border(
-          top: BorderSide(color: kGold.withAlpha(40)),
-        ),
+        border: Border(top: BorderSide(color: kGold.withAlpha(40))),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -122,26 +160,13 @@ class _MainHomeNavState extends State<MainHomePage> {
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               curve: Curves.easeOutCubic,
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 8),
-              transform: isSelected
-                  ? (Matrix4.identity()..setEntry(1, 3, -4.0))
-                  : Matrix4.identity(),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    _navIcons[i],
-                    size: 22,
-                    color: isSelected ? kVermilion : kInkGray,
-                  ),
+                  Icon(_navIcons[i], size: 22, color: isSelected ? kVermilion : kInkGray),
                   const SizedBox(height: 2),
-                  Text(
-                    _navLabels[i],
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: isSelected ? kVermilion : kInkGray,
-                    ),
-                  ),
+                  Text(_navLabels[i], style: TextStyle(fontSize: 10, color: isSelected ? kVermilion : kInkGray)),
                 ],
               ),
             ),
@@ -167,15 +192,23 @@ class _ReaderRootAppState extends State<ReaderRootApp> {
   @override
   void initState() {
     super.initState();
+    _updateSystemBars();
     Future.delayed(const Duration(milliseconds: 300), () => checkAuth());
     _controller.init();
+  }
+
+  void _updateSystemBars() {
+    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+      systemNavigationBarColor: Colors.transparent,
+      systemNavigationBarIconBrightness: Brightness.light,
+    ));
   }
 
   Future<void> checkAuth() async {
     try {
       final token = await getToken();
       if (token != null && token.isNotEmpty) {
-        final response = await http.get(Uri.parse('${ApiConfig.baseUrl}/api/auth/me'), headers: {'Authorization': 'Bearer $token'});
+        final response = await http.get(Uri.parse('${ApiConfig.baseUrl}/api/auth/me'), headers: {'Authorization': 'Bearer $token'}).timeout(const Duration(seconds: 10));
         if (response.statusCode == 200) {
           final body = jsonDecode(response.body) as Map<String, dynamic>;
           final user = body['user'] as Map<String, dynamic>?;
@@ -202,27 +235,36 @@ class _ReaderRootAppState extends State<ReaderRootApp> {
       animation: _controller,
       builder: (context, _) {
         final settings = _controller.settings;
-        final scheme = ColorScheme.fromSeed(seedColor: kGold, brightness: Brightness.dark, primary: kGold, surface: kPaperDark);
-        final background = switch (settings.backgroundMode) {
-          'night' => const Color(0xFF000000),
-          _ => kPaperDark,
-        };
+        final background = _bgForMode(settings.backgroundMode);
+        final isLight = settings.backgroundMode == 'light';
+        final scheme = isLight ? _lightScheme : _darkScheme;
+
         final baseTheme = ThemeData(
           colorScheme: scheme,
           useMaterial3: true,
-          brightness: Brightness.dark,
+          brightness: isLight ? Brightness.light : Brightness.dark,
           fontFamily: settings.fontFamily == 'system' ? GoogleFonts.notoSansSc().fontFamily : settings.fontFamily,
-          scaffoldBackgroundColor: kPaperDark,
+          scaffoldBackgroundColor: background,
           pageTransitionsTheme: const PageTransitionsTheme(
             builders: {TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(), TargetPlatform.iOS: FadeUpwardsPageTransitionsBuilder()},
           ),
+          navigationBarTheme: NavigationBarThemeData(
+            backgroundColor: Colors.transparent,
+            indicatorColor: kGold.withAlpha(40),
+          ),
+          appBarTheme: AppBarTheme(
+            backgroundColor: (isLight ? Colors.white : kPaperWarm).withAlpha(220),
+            foregroundColor: isLight ? kPaperDark : kInkWarm,
+            elevation: 0,
+          ),
         );
+
         return MaterialApp(
           title: 'PureReader',
           debugShowCheckedModeBanner: false,
           theme: baseTheme,
           darkTheme: baseTheme,
-          themeMode: ThemeMode.dark,
+          themeMode: settings.backgroundMode == 'light' ? ThemeMode.light : ThemeMode.dark,
           builder: (context, child) {
             final mq = MediaQuery.of(context);
             final scale = settings.fontScale;
@@ -237,10 +279,10 @@ class _ReaderRootAppState extends State<ReaderRootApp> {
             );
           },
           home: _isChecking
-              ? Scaffold(backgroundColor: kPaperDark, body: const Center(child: InkLoading()))
+              ? Scaffold(backgroundColor: background, body: const Center(child: InkLoading()))
               : _isLoggedIn
                   ? MainHomePage(controller: _controller, onLogout: () => setState(() => _isLoggedIn = false))
-                  : const LoginPage(),
+                  : const SplashPage(),
         );
       },
     );

@@ -16,7 +16,7 @@ class AppSettings {
   final bool readingMode;
   final bool keepScreenOn;
   final bool showLineNumbers;
-  final String backgroundMode;
+  final String backgroundMode; // 'dark' | 'warm' | 'light' | 'pine' | 'black'
   final String fontFamily;
   final double lineHeight;
 
@@ -32,12 +32,12 @@ class AppSettings {
   });
 
   const AppSettings.defaults()
-      : themeMode = ThemeMode.system,
+      : themeMode = ThemeMode.dark,
         fontScale = 1.0,
         readingMode = true,
         keepScreenOn = false,
         showLineNumbers = false,
-        backgroundMode = 'system',
+        backgroundMode = 'dark',
         fontFamily = 'system',
         lineHeight = 1.6;
 
@@ -67,19 +67,19 @@ class AppSettings {
 
   static Future<AppSettings> load() async {
     final prefs = await SharedPreferences.getInstance();
-    final modeName = prefs.getString(_themeModeKey) ?? 'system';
+    final modeName = prefs.getString(_themeModeKey) ?? 'dark';
     final fontScale = prefs.getDouble(_fontScaleKey) ?? 1.0;
     return AppSettings(
       themeMode: switch (modeName) {
         'light' => ThemeMode.light,
         'dark' => ThemeMode.dark,
-        _ => ThemeMode.system,
+        _ => ThemeMode.dark,
       },
       fontScale: fontScale.clamp(0.85, 1.35),
       readingMode: prefs.getBool(_readingModeKey) ?? true,
       keepScreenOn: prefs.getBool(_keepScreenOnKey) ?? false,
       showLineNumbers: prefs.getBool(_showLineNumbersKey) ?? false,
-      backgroundMode: prefs.getString(_backgroundKey) ?? 'system',
+      backgroundMode: prefs.getString(_backgroundKey) ?? 'dark',
       fontFamily: prefs.getString(_fontFamilyKey) ?? 'system',
       lineHeight: prefs.getDouble(_lineHeightKey) ?? 1.6,
     );
@@ -90,7 +90,7 @@ class AppSettings {
     await prefs.setString(_themeModeKey, switch (themeMode) {
       ThemeMode.light => 'light',
       ThemeMode.dark => 'dark',
-      ThemeMode.system => 'system',
+      ThemeMode.system => 'dark',
     });
     await prefs.setDouble(_fontScaleKey, fontScale);
     await prefs.setBool(_readingModeKey, readingMode);

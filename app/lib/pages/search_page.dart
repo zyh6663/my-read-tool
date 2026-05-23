@@ -261,7 +261,7 @@ class _SearchPageState extends State<SearchPage> {
       const SnackBar(content: Text('正在导入书籍…'), duration: Duration(seconds: 1)),
     );
     try {
-      final res = await SearchService.importBook(detail.sourceId, detail.sourceBookId, autoAddToShelf: true);
+      final res = await SearchService.importBook(detail.sourceId, detail.sourceBookId, autoAddToShelf: false);
       // 轮询进度
       for (int i = 0; i < 60; i++) {
         await Future.delayed(const Duration(seconds: 1));
@@ -298,7 +298,7 @@ class _SearchPageState extends State<SearchPage> {
       const SnackBar(content: Text('正在准备阅读…'), duration: Duration(seconds: 1)),
     );
     try {
-      final res = await SearchService.importBook(detail.sourceId, detail.sourceBookId, autoAddToShelf: true);
+      final res = await SearchService.importBook(detail.sourceId, detail.sourceBookId, autoAddToShelf: false);
       int? bookId;
       for (int i = 0; i < 60; i++) {
         await Future.delayed(const Duration(seconds: 1));

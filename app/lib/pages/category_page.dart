@@ -4,6 +4,7 @@ import '../animated_glass.dart';
 import '../glass_widgets.dart';
 import '../reading_page.dart';
 import '../services/search_service.dart';
+import '../widgets/ink_loading.dart';
 
 /// 分类关键词映射表（顺序匹配，命中第一个就归类）
 const Map<String, List<String>> _categoryKeywords = {
@@ -192,7 +193,7 @@ class _CategoryPageState extends State<CategoryPage> {
     final merged = <_BookItem>[];
 
     try {
-      final results = await SearchService.listRemoteBooks();
+      final results = await SearchService.listRemoteBooks().timeout(const Duration(seconds: 20));
       for (final r in results) {
         merged.add(_BookItem.fromSearchResult(r));
       }
@@ -233,7 +234,7 @@ class _CategoryPageState extends State<CategoryPage> {
 
     if (_loading) {
       return const SafeArea(
-        child: Center(child: CircularProgressIndicator()),
+        child: Center(child: InkLoading()),
       );
     }
 
@@ -496,7 +497,7 @@ class _CategoryPageState extends State<CategoryPage> {
       const SnackBar(content: Text('正在导入书籍…'), duration: Duration(seconds: 1)),
     );
     try {
-      final res = await SearchService.importBook(detail.sourceId, detail.sourceBookId, autoAddToShelf: true);
+      final res = await SearchService.importBook(detail.sourceId, detail.sourceBookId, autoAddToShelf: false);
       for (int i = 0; i < 60; i++) {
         await Future.delayed(const Duration(seconds: 1));
         final progress = await SearchService.getProgress(res.taskId);
@@ -527,7 +528,7 @@ class _CategoryPageState extends State<CategoryPage> {
       const SnackBar(content: Text('正在准备阅读…'), duration: Duration(seconds: 1)),
     );
     try {
-      final res = await SearchService.importBook(detail.sourceId, detail.sourceBookId, autoAddToShelf: true);
+      final res = await SearchService.importBook(detail.sourceId, detail.sourceBookId, autoAddToShelf: false);
       int? bookId;
       for (int i = 0; i < 60; i++) {
         await Future.delayed(const Duration(seconds: 1));

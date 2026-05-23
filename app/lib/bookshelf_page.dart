@@ -9,7 +9,6 @@ import 'auth_pages.dart';
 import 'glass_widgets.dart';
 import 'main.dart';
 import 'reading_page.dart';
-import 'widgets/book_cover.dart';
 import 'widgets/ink_loading.dart';
 
 class ShelfBook {
@@ -331,7 +330,16 @@ class _BookShelfPageState extends State<BookShelfPage> {
     );
   }
 
+  Color _bookColor(String title) {
+    final hash = title.hashCode;
+    return Color.fromARGB(255, (hash & 0xFF) % 128 + 64, ((hash >> 8) & 0xFF) % 128 + 64, ((hash >> 16) & 0xFF) % 128 + 64);
+  }
+
   Widget _buildBookCard(BuildContext context, ShelfBook book, int index) {
+    final color = _bookColor(book.bookTitle);
+    final firstChar = book.bookTitle.isNotEmpty ? book.bookTitle.characters.first : '?';
+    final shortTitle = book.bookTitle.length > 20 ? '${book.bookTitle.substring(0, 20)}…' : book.bookTitle;
+
     return TweenAnimationBuilder<double>(
       key: ValueKey(book.id),
       tween: Tween(begin: 0.96, end: 1),
@@ -342,11 +350,40 @@ class _BookShelfPageState extends State<BookShelfPage> {
         child: GestureDetector(
           onTap: () => _onTapBook(book),
           onLongPress: () => _showRemoveDialog(book),
-          child: BookCover(
-            title: book.bookTitle,
-            author: book.bookAuthor,
-            width: double.infinity,
-            height: 170,
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: kGold.withAlpha(60)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 44, height: 60,
+                  decoration: BoxDecoration(
+                    color: color,
+                    borderRadius: const BorderRadius.only(topLeft: Radius.circular(12), bottomLeft: Radius.circular(12)),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(firstChar, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700)),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(shortTitle, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: kInkWarm)),
+                      if (book.bookAuthor.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(book.bookAuthor, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 10, color: kInkGray)),
+                      ],
+                    ],
+                  ),
+                ),
+                const Icon(Icons.chevron_right_rounded, color: kInkGray, size: 18),
+                const SizedBox(width: 8),
+              ],
+            ),
           ),
         ),
       ),

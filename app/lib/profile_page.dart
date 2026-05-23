@@ -2,19 +2,27 @@ import 'package:flutter/material.dart';
 
 import 'animated_glass.dart';
 import 'app_controller.dart';
-import 'auth_pages.dart';
 import 'glass_widgets.dart';
+import 'main.dart';
 
 class ProfilePage extends StatelessWidget {
   final AppController controller;
   final VoidCallback? onLogout;
   final VoidCallback? onOpenSettings;
+  final VoidCallback? onOpenFavorites;
+  final VoidCallback? onOpenSources;
 
-  const ProfilePage({super.key, required this.controller, this.onLogout, this.onOpenSettings});
+  const ProfilePage({
+    super.key,
+    required this.controller,
+    this.onLogout,
+    this.onOpenSettings,
+    this.onOpenFavorites,
+    this.onOpenSources,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final email = controller.userEmail ?? '未获取到邮箱';
     final name = controller.userName?.isNotEmpty == true ? controller.userName! : 'PureReader 用户';
 
@@ -28,19 +36,16 @@ class ProfilePage extends StatelessWidget {
                 children: [
                   CircleAvatar(
                     radius: 46,
-                    backgroundColor: theme.colorScheme.primaryContainer,
+                    backgroundColor: kGold.withAlpha(80),
                     child: Text(
                       name.isNotEmpty ? name.characters.first.toUpperCase() : 'U',
-                      style: theme.textTheme.headlineMedium?.copyWith(
-                        color: theme.colorScheme.onPrimaryContainer,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: const TextStyle(color: kGold, fontSize: 28, fontWeight: FontWeight.bold),
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Text(name, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
+                  Text(name, style: const TextStyle(color: kInkWarm, fontSize: 20, fontWeight: FontWeight.w700)),
                   const SizedBox(height: 6),
-                  Text(email, style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                  Text(email, style: const TextStyle(color: kInkGray, fontSize: 14)),
                 ],
               ),
             ),
@@ -52,51 +57,27 @@ class ProfilePage extends StatelessWidget {
                 child: Column(
                   children: [
                     ListTile(
-                      leading: const Icon(Icons.person_outline),
-                      title: const Text('账号信息'),
-                      subtitle: Text('$name · $email'),
-                      trailing: const Icon(Icons.refresh),
-                      onTap: () async {
-                        try {
-                          final token = await getToken();
-                          if (token == null || token.isEmpty) return;
-                          final data = await fetchUserInfo(token);
-                          final user = data['user'] as Map<String, dynamic>?;
-                          controller.updateUser(
-                            email: user?['email'] as String?,
-                            name: user?['nickname'] as String?,
-                          );
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('个人资料已刷新')),
-                            );
-                          }
-                        } catch (e) {
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('刷新失败: $e')),
-                            );
-                          }
-                        }
-                      },
-                    ),
-                    const Divider(height: 1),
-                    ListTile(
-                      leading: const Icon(Icons.settings_outlined),
-                      title: const Text('前往设置'),
-                      subtitle: const Text('主题、字体和阅读偏好'),
-                      trailing: const Icon(Icons.chevron_right),
+                      leading: const Icon(Icons.settings_rounded, color: kGold),
+                      title: const Text('设置', style: TextStyle(color: kInkWarm)),
+                      subtitle: const Text('主题、字体和阅读偏好', style: TextStyle(color: kInkGray)),
+                      trailing: const Icon(Icons.chevron_right_rounded, color: kInkGray),
                       onTap: onOpenSettings,
                     ),
                     const Divider(height: 1),
                     ListTile(
-                      leading: const Icon(Icons.bar_chart_outlined),
-                      title: const Text('阅读统计'),
-                      subtitle: const Text('查看阅读趋势与书籍概况'),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('统计功能即将接入真实数据')),
-                      ),
+                      leading: const Icon(Icons.favorite_rounded, color: kGold),
+                      title: const Text('收藏', style: TextStyle(color: kInkWarm)),
+                      subtitle: const Text('查看收藏的书籍', style: TextStyle(color: kInkGray)),
+                      trailing: const Icon(Icons.chevron_right_rounded, color: kInkGray),
+                      onTap: onOpenFavorites,
+                    ),
+                    const Divider(height: 1),
+                    ListTile(
+                      leading: const Icon(Icons.source_rounded, color: kGold),
+                      title: const Text('书源管理', style: TextStyle(color: kInkWarm)),
+                      subtitle: const Text('导入、查看和管理书源', style: TextStyle(color: kInkGray)),
+                      trailing: const Icon(Icons.chevron_right_rounded, color: kInkGray),
+                      onTap: onOpenSources,
                     ),
                   ],
                 ),
@@ -105,21 +86,22 @@ class ProfilePage extends StatelessWidget {
                 child: Column(
                   children: [
                     ListTile(
-                      leading: const Icon(Icons.security_outlined),
-                      title: const Text('账号安全'),
-                      subtitle: const Text('修改密码、设备管理'),
+                      leading: const Icon(Icons.security_rounded, color: kGold),
+                      title: const Text('账号安全', style: TextStyle(color: kInkWarm)),
+                      subtitle: const Text('修改密码、设备管理', style: TextStyle(color: kInkGray)),
                       onTap: () => ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('账号安全模块可在后端支持后接入')),
                       ),
                     ),
+                    const Divider(height: 1),
                     ListTile(
-                      leading: const Icon(Icons.support_agent_outlined),
-                      title: const Text('帮助与反馈'),
-                      subtitle: const Text('提交问题或查看使用说明'),
+                      leading: const Icon(Icons.info_rounded, color: kGold),
+                      title: const Text('关于', style: TextStyle(color: kInkWarm)),
+                      subtitle: const Text('PureReader · 让阅读更专注', style: TextStyle(color: kInkGray)),
                       onTap: () => showAboutDialog(
                         context: context,
                         applicationName: 'PureReader',
-                        applicationVersion: '1.0.0',
+                        applicationVersion: '1.6.0',
                         applicationLegalese: '© 2026 PureReader',
                       ),
                     ),
@@ -131,7 +113,7 @@ class ProfilePage extends StatelessWidget {
                   width: double.infinity,
                   child: FilledButton.icon(
                     onPressed: onLogout,
-                    icon: const Icon(Icons.logout),
+                    icon: const Icon(Icons.logout_rounded),
                     label: const Text('退出登录'),
                   ),
                 ),
