@@ -330,14 +330,7 @@ class _BookShelfPageState extends State<BookShelfPage> {
     );
   }
 
-  Color _bookColor(String title) {
-    final hash = title.hashCode;
-    return Color.fromARGB(255, (hash & 0xFF) % 128 + 64, ((hash >> 8) & 0xFF) % 128 + 64, ((hash >> 16) & 0xFF) % 128 + 64);
-  }
-
   Widget _buildBookCard(BuildContext context, ShelfBook book, int index) {
-    final color = _bookColor(book.bookTitle);
-    final firstChar = book.bookTitle.isNotEmpty ? book.bookTitle.characters.first : '?';
     final shortTitle = book.bookTitle.length > 20 ? '${book.bookTitle.substring(0, 20)}…' : book.bookTitle;
 
     return TweenAnimationBuilder<double>(
@@ -358,13 +351,20 @@ class _BookShelfPageState extends State<BookShelfPage> {
             child: Row(
               children: [
                 Container(
-                  width: 44, height: 60,
+                  width: 70, height: 70,
                   decoration: BoxDecoration(
-                    color: color,
+                    color: Color.fromARGB(255,
+                      80 + ((book.bookTitle.hashCode) & 0xFF) % 80,
+                      60 + ((book.bookTitle.hashCode >> 8) & 0xFF) % 80,
+                      40 + ((book.bookTitle.hashCode >> 16) & 0xFF) % 100,
+                    ),
                     borderRadius: const BorderRadius.only(topLeft: Radius.circular(12), bottomLeft: Radius.circular(12)),
                   ),
                   alignment: Alignment.center,
-                  child: Text(firstChar, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700)),
+                  child: Text(
+                    book.bookTitle.isNotEmpty ? book.bookTitle.characters.first : '书',
+                    style: const TextStyle(fontSize: 28, color: Colors.white, fontWeight: FontWeight.bold),
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
