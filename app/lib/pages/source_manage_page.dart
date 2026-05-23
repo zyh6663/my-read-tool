@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../auth_pages.dart';
 import '../services/source_service.dart';
+import '../widgets/ink_loading.dart';
 import '../widgets/source_card.dart';
 import '../widgets/source_import_dialog.dart';
 
@@ -48,7 +49,7 @@ class _SourceManagePageState extends State<SourceManagePage> {
         leading: const BackButton(),
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: InkLoading())
           : ListView.builder(
               padding: const EdgeInsets.all(16),
               itemCount: _sources.length,

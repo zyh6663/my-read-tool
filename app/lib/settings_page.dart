@@ -41,27 +41,16 @@ class SettingsPage extends StatelessWidget {
                     padding: EdgeInsets.only(bottom: 8),
                     child: Text('主题模式'),
                   ),
-                  SegmentedButton<ThemeMode>(
-                    segments: const [
-                      ButtonSegment(
-                        value: ThemeMode.light,
-                        label: Text('浅色'),
-                        icon: Icon(Icons.light_mode_outlined),
-                      ),
-                      ButtonSegment(
-                        value: ThemeMode.dark,
-                        label: Text('深色'),
-                        icon: Icon(Icons.dark_mode_outlined),
-                      ),
-                      ButtonSegment(
-                        value: ThemeMode.system,
-                        label: Text('系统'),
-                        icon: Icon(Icons.brightness_auto_outlined),
-                      ),
+                  DropdownButtonFormField<ThemeMode>(
+                    initialValue: settings.themeMode,
+                    decoration: const InputDecoration(border: OutlineInputBorder()),
+                    items: const [
+                      DropdownMenuItem(value: ThemeMode.light, child: Text('浅色')),
+                      DropdownMenuItem(value: ThemeMode.dark, child: Text('深色')),
+                      DropdownMenuItem(value: ThemeMode.system, child: Text('跟随系统')),
                     ],
-                    selected: {settings.themeMode},
-                    onSelectionChanged: (selected) {
-                      onChanged(settings.copyWith(themeMode: selected.first));
+                    onChanged: (v) {
+                      if (v != null) onChanged(settings.copyWith(themeMode: v));
                     },
                   ),
                 ],

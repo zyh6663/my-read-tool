@@ -8,6 +8,7 @@ import 'animated_glass.dart';
 import 'config/api_config.dart';
 import 'glass_widgets.dart';
 import 'pages/auth_service.dart';
+import 'widgets/ink_loading.dart';
 
 Future<void> saveToken(String token) async {
   final prefs = await SharedPreferences.getInstance();
@@ -192,7 +193,7 @@ class _LoginPageState extends State<LoginPage> {
                         height: 48,
                         child: FilledButton(
                           onPressed: _isLoading ? null : _doLogin,
-                          child: _isLoading ? const CircularProgressIndicator(strokeWidth: 2.5) : const Text('登录'),
+                          child: _isLoading ? const InkLoading(size: 20) : const Text('登录'),
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -341,7 +342,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         height: 48,
                         child: FilledButton(
                           onPressed: _isLoading ? null : _doRegister,
-                          child: _isLoading ? const CircularProgressIndicator(strokeWidth: 2.5) : const Text('注册'),
+                          child: _isLoading ? const InkLoading(size: 20) : const Text('注册'),
                         ),
                       ),
                     ],
@@ -425,7 +426,7 @@ class _UserCenterPageState extends State<UserCenterPage> {
   Widget build(BuildContext context) => Scaffold(body: _buildBody());
 
   Widget _buildBody() {
-    if (_isLoading) return const Center(child: CircularProgressIndicator());
+    if (_isLoading) return const Center(child: InkLoading());
     if (_error != null) return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [Text(_error!), const SizedBox(height: 16), FilledButton(onPressed: _loadUserInfo, child: const Text('重试'))]));
     final user = _user!;
     return SafeArea(

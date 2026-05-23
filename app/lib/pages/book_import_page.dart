@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../glass_widgets.dart';
 import '../services/search_service.dart';
+import '../widgets/ink_loading.dart';
 
 class BookImportPage extends StatefulWidget {
   final SearchResult result;
@@ -72,7 +73,7 @@ class _BookImportPageState extends State<BookImportPage> {
     return Scaffold(
       appBar: AppBar(title: const Text('书籍详情')),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: InkLoading())
           : _detail == null
               ? const Center(child: Text('加载失败'))
               : ListView(

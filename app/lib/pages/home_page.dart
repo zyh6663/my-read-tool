@@ -109,9 +109,9 @@ class HomePage extends StatelessWidget {
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      Expanded(child: _StatCard(title: '阅读时长', value: '0 分钟', icon: Icons.timer_rounded)),
+                      Expanded(child: _StatCard(title: '今日阅读', value: '暂无记录', icon: Icons.timer_rounded)),
                       const SizedBox(width: 12),
-                      Expanded(child: _StatCard(title: '书籍数量', value: '0 本', icon: Icons.menu_book_rounded)),
+                      Expanded(child: _StatCard(title: '书架藏书', value: '暂无', icon: Icons.menu_book_rounded)),
                     ],
                   ),
                   const SizedBox(height: 12),

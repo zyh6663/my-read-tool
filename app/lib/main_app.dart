@@ -9,7 +9,6 @@ import 'app_controller.dart';
 import 'auth_pages.dart';
 import 'bookshelf_page.dart';
 import 'config/api_config.dart';
-import 'main.dart';
 import 'pages/category_page.dart';
 import 'pages/favorite_page.dart';
 import 'pages/home_page.dart';
@@ -23,35 +22,30 @@ import 'widgets/splash_page.dart';
 
 const _lightScheme = ColorScheme(
   brightness: Brightness.light,
-  primary: kGold,
-  onPrimary: kPaperDark,
-  secondary: kVermilion,
-  onSecondary: kCloudWhite,
-  surface: Color(0xFFF5F0E8),
-  onSurface: kPaperDark,
-  error: kVermilion,
-  onError: kCloudWhite,
+  primary: Color(0xFF5B6ABF),
+  onPrimary: Colors.white,
+  secondary: Color(0xFF7C8ADB),
+  onSecondary: Colors.white,
+  surface: Color(0xFFF8F6F2),
+  onSurface: Color(0xFF2D2D2D),
+  error: Color(0xFFC44D4D),
+  onError: Colors.white,
 );
 
 const _darkScheme = ColorScheme(
   brightness: Brightness.dark,
-  primary: kGold,
-  onPrimary: kPaperDark,
-  secondary: kVermilion,
-  onSecondary: kPaperDark,
-  surface: kPaperWarm,
-  onSurface: kInkWarm,
-  error: kVermilion,
-  onError: kPaperDark,
+  primary: Color(0xFF8B9AE0),
+  onPrimary: Color(0xFF1A1A2E),
+  secondary: Color(0xFFA0ADF0),
+  onSecondary: Color(0xFF1A1A2E),
+  surface: Color(0xFF1E1E2E),
+  onSurface: Color(0xFFE8E6E0),
+  error: Color(0xFFE06060),
+  onError: Color(0xFF1A1A2E),
 );
 
-Color _bgForMode(String mode) => switch (mode) {
-  'warm'  => const Color(0xFF2A221D),
-  'light' => const Color(0xFFF5F0E8),
-  'pine'  => const Color(0xFF1A2A1A),
-  'black' => const Color(0xFF000000),
-  _       => const Color(0xFF1A1210),
-};
+const _navIcons = [Icons.home_rounded, Icons.bookmark_rounded, Icons.search_rounded, Icons.person_rounded];
+const _navLabels = ['首页', '书架', '搜索', '我的'];
 
 class MainHomePage extends StatefulWidget {
   final VoidCallback? onLogout;
@@ -66,9 +60,6 @@ class MainHomePage extends StatefulWidget {
 class _MainHomeNavState extends State<MainHomePage> {
   int _currentIndex = 0;
 
-  static const _navIcons = [Icons.home_rounded, Icons.bookmark_rounded, Icons.search_rounded, Icons.person_rounded];
-  static const _navLabels = ['首页', '书架', '搜索', '我的'];
-
   Future<void> _logout() async {
     await clearToken();
     widget.onLogout?.call();
@@ -80,7 +71,7 @@ class _MainHomeNavState extends State<MainHomePage> {
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('已重置本地设置')));
   }
 
-  Widget _buildAnimatedPage() {
+  Widget _buildPages() {
     final pages = [
       HomePage(
         onOpenBookshelf: () => setState(() => _currentIndex = 1),
@@ -121,51 +112,48 @@ class _MainHomeNavState extends State<MainHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Scaffold(
       extendBody: true,
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(48),
         child: AppBar(
-          backgroundColor: kPaperWarm.withAlpha(220),
-          title: Text(_navLabels[_currentIndex], style: const TextStyle(color: kInkWarm)),
+          backgroundColor: scheme.surface.withAlpha(220),
+          title: Text(_navLabels[_currentIndex], style: TextStyle(color: scheme.onSurface)),
           centerTitle: true,
           automaticallyImplyLeading: false,
         ),
       ),
-      body: _buildAnimatedPage(),
-      bottomNavigationBar: _buildBottomNav(),
-    );
-  }
-
-  Widget _buildBottomNav() {
-    return Container(
-      height: 56,
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewPadding.bottom),
-      decoration: BoxDecoration(
-        color: kPaperWarm.withAlpha(230),
-        border: Border(top: BorderSide(color: kGold.withAlpha(40))),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: List.generate(_navIcons.length, (i) {
-          final isSelected = i == _currentIndex;
-          return GestureDetector(
-            onTap: () => setState(() => _currentIndex = i),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              curve: Curves.easeOutCubic,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(_navIcons[i], size: 22, color: isSelected ? kVermilion : kInkGray),
-                  const SizedBox(height: 2),
-                  Text(_navLabels[i], style: TextStyle(fontSize: 10, color: isSelected ? kVermilion : kInkGray)),
-                ],
+      body: _buildPages(),
+      bottomNavigationBar: Container(
+        height: 56,
+        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewPadding.bottom),
+        decoration: BoxDecoration(
+          color: scheme.surface.withAlpha(230),
+          border: Border(top: BorderSide(color: scheme.outlineVariant.withAlpha(60))),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: List.generate(_navIcons.length, (i) {
+            final isSelected = i == _currentIndex;
+            return GestureDetector(
+              onTap: () => setState(() => _currentIndex = i),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOutCubic,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(_navIcons[i], size: 22, color: isSelected ? scheme.primary : scheme.onSurface.withAlpha(100)),
+                    const SizedBox(height: 2),
+                    Text(_navLabels[i], style: TextStyle(fontSize: 10, color: isSelected ? scheme.primary : scheme.onSurface.withAlpha(100))),
+                  ],
+                ),
               ),
-            ),
-          );
-        }),
+            );
+          }),
+        ),
       ),
     );
   }
@@ -192,10 +180,9 @@ class _ReaderRootAppState extends State<ReaderRootApp> {
   }
 
   void _updateSystemBars() {
-    final isLight = _controller.settings.backgroundMode == 'light';
-    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
+    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
       systemNavigationBarColor: Colors.transparent,
-      systemNavigationBarIconBrightness: isLight ? Brightness.dark : Brightness.light,
+      systemNavigationBarIconBrightness: Brightness.dark,
     ));
   }
 
@@ -235,26 +222,39 @@ class _ReaderRootAppState extends State<ReaderRootApp> {
       animation: _controller,
       builder: (context, _) {
         final settings = _controller.settings;
-        final background = _bgForMode(settings.backgroundMode);
-        final isLight = settings.backgroundMode == 'light';
-        final scheme = isLight ? _lightScheme : _darkScheme;
 
         final baseTheme = ThemeData(
-          colorScheme: scheme,
+          colorScheme: _lightScheme,
           useMaterial3: true,
-          brightness: isLight ? Brightness.light : Brightness.dark,
           fontFamily: settings.fontFamily == 'system' ? GoogleFonts.notoSansSc().fontFamily : settings.fontFamily,
-          scaffoldBackgroundColor: background,
           pageTransitionsTheme: const PageTransitionsTheme(
             builders: {TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(), TargetPlatform.iOS: FadeUpwardsPageTransitionsBuilder()},
           ),
           navigationBarTheme: NavigationBarThemeData(
             backgroundColor: Colors.transparent,
-            indicatorColor: kGold.withAlpha(40),
+            indicatorColor: _lightScheme.primary.withAlpha(30),
           ),
           appBarTheme: AppBarTheme(
-            backgroundColor: (isLight ? Colors.white : kPaperWarm).withAlpha(220),
-            foregroundColor: isLight ? kPaperDark : kInkWarm,
+            backgroundColor: _lightScheme.surface.withAlpha(220),
+            foregroundColor: _lightScheme.onSurface,
+            elevation: 0,
+          ),
+        );
+
+        final darkTheme = ThemeData(
+          colorScheme: _darkScheme,
+          useMaterial3: true,
+          fontFamily: settings.fontFamily == 'system' ? GoogleFonts.notoSansSc().fontFamily : settings.fontFamily,
+          pageTransitionsTheme: const PageTransitionsTheme(
+            builders: {TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(), TargetPlatform.iOS: FadeUpwardsPageTransitionsBuilder()},
+          ),
+          navigationBarTheme: NavigationBarThemeData(
+            backgroundColor: Colors.transparent,
+            indicatorColor: _darkScheme.primary.withAlpha(30),
+          ),
+          appBarTheme: AppBarTheme(
+            backgroundColor: _darkScheme.surface.withAlpha(220),
+            foregroundColor: _darkScheme.onSurface,
             elevation: 0,
           ),
         );
@@ -263,7 +263,7 @@ class _ReaderRootAppState extends State<ReaderRootApp> {
         if (!_splashDone) {
           home = SplashPage(onComplete: _onSplashComplete);
         } else if (_isChecking) {
-          home = Scaffold(backgroundColor: background, body: const Center(child: InkLoading()));
+          home = Scaffold(backgroundColor: _darkScheme.surface, body: const Center(child: InkLoading()));
         } else if (_isLoggedIn) {
           home = MainHomePage(controller: _controller, onLogout: () => setState(() { _isLoggedIn = false; _splashDone = false; }));
         } else {
@@ -274,8 +274,8 @@ class _ReaderRootAppState extends State<ReaderRootApp> {
           title: 'PureReader',
           debugShowCheckedModeBanner: false,
           theme: baseTheme,
-          darkTheme: baseTheme,
-          themeMode: settings.backgroundMode == 'light' ? ThemeMode.light : ThemeMode.dark,
+          darkTheme: darkTheme,
+          themeMode: settings.flutterThemeMode,
           builder: (context, child) {
             final mq = MediaQuery.of(context);
             final scale = settings.fontScale;
@@ -286,7 +286,7 @@ class _ReaderRootAppState extends State<ReaderRootApp> {
             );
             return MediaQuery(
               data: mq.copyWith(textScaler: TextScaler.linear(scale)),
-              child: Container(color: background, child: wrapped),
+              child: wrapped,
             );
           },
           home: home,
