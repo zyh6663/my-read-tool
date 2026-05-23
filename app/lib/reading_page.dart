@@ -8,8 +8,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'auth_pages.dart';
 import 'config/api_config.dart';
+import 'main.dart';
 import 'renderers/book_renderer.dart';
 import 'widgets/chapter_drawer.dart';
+import 'widgets/curled_page_view.dart';
+import 'widgets/gold_border.dart';
+import 'widgets/ink_loading.dart';
 import 'widgets/reading_app_bar.dart';
 import 'widgets/reading_bottom_bar.dart';
 
@@ -21,7 +25,8 @@ class _ChapterInfo {
   final int index;
   final String title;
   _ChapterInfo({required this.index, required this.title});
-  factory _ChapterInfo.fromJson(Map<String, dynamic> json) => _ChapterInfo(index: json['index'] as int? ?? 0, title: json['title'] as String? ?? '');
+  factory _ChapterInfo.fromJson(Map<String, dynamic> json) =>
+      _ChapterInfo(index: json['index'] as int? ?? 0, title: json['title'] as String? ?? '');
 }
 
 class _Chapter {
@@ -29,7 +34,10 @@ class _Chapter {
   final String title;
   final String content;
   _Chapter({required this.index, required this.title, required this.content});
-  factory _Chapter.fromJson(Map<String, dynamic> json) => _Chapter(index: json['index'] as int? ?? 0, title: json['title'] as String? ?? '', content: json['content'] as String? ?? '');
+  factory _Chapter.fromJson(Map<String, dynamic> json) => _Chapter(
+      index: json['index'] as int? ?? 0,
+      title: json['title'] as String? ?? '',
+      content: json['content'] as String? ?? '');
 }
 
 class ReadingPage extends StatefulWidget {
@@ -39,39 +47,69 @@ class ReadingPage extends StatefulWidget {
   @override State<ReadingPage> createState() => _ReadingPageState();
 }
 
-class _ReadingPageState extends State<ReadingPage> {
+class _ReadingPageState extends State<ReadingPage>
+    with SingleTickerProviderStateMixin {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   int _currentChapterIndex = 0;
   final List<_ChapterInfo> _chapters = [];
   String _content = '';
+  String _previousContent = '';
   String _bookFormat = 'txt';
   bool _isLoadingToc = true;
   bool _isLoadingContent = false;
   String? _error;
   bool _showMenu = true;
-  final ScrollController _scrollController = ScrollController();
+  ReadingTheme _currentTheme = ReadingTheme.darkPaper;
+  double _fontSize = 18.0;
+  double _baseFontSize = 18.0;
+  double _lineHeight = 1.8;
   bool _isFavorited = false;
   bool _isFavoriteLoading = false;
-  ReadingTheme _currentTheme = ReadingTheme.eyeCare;
-  double _fontSize = 18.0;
-  double _lineHeight = 1.5;
+  bool _isNextPage = true;
+  int _pageKey = 0;
+
+  late AnimationController _flipController;
+  late Animation<double> _flipAnimation;
+  bool _isFlipping = false;
 
   @override
   void initState() {
     super.initState();
+    _flipController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+    _flipAnimation = CurvedAnimation(
+      parent: _flipController,
+      curve: Curves.easeInOutCubic,
+    );
+    _flipController.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        setState(() {
+          _previousContent = '';
+          _isFlipping = false;
+        });
+        _flipController.reset();
+      }
+    });
     _loadToc();
     _updateStatusBar();
     _checkShelfStatus();
   }
 
   void _updateStatusBar() {
-    final isDark = _currentTheme == ReadingTheme.dark;
-    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(statusBarColor: Colors.transparent, statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark, systemNavigationBarColor: _currentTheme.background, systemNavigationBarIconBrightness: isDark ? Brightness.light : Brightness.dark));
+    final isDark = _currentTheme != ReadingTheme.lightPaper;
+    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+      systemNavigationBarColor: _currentTheme.background,
+      systemNavigationBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+    ));
   }
 
   @override
   void dispose() {
-    _scrollController.dispose();
+    _flipController.dispose();
     super.dispose();
   }
 
@@ -98,8 +136,17 @@ class _ReadingPageState extends State<ReadingPage> {
   }
 
   Future<void> _loadChapter(int index) async {
-    if (index < 0 || index >= _chapters.length) return;
-    setState(() { _currentChapterIndex = index; _isLoadingContent = true; _error = null; });
+    if (index < 0 || index >= _chapters.length || _isFlipping) return;
+    _previousContent = _content;
+    _isNextPage = index > _currentChapterIndex;
+    _currentChapterIndex = index;
+    _isLoadingContent = true;
+    _error = null;
+    _pageKey++;
+    _isFlipping = true;
+
+    _flipController.forward();
+
     try {
       final uri = Uri.parse('$_kBookApiBaseUrl/api/books/${widget.bookId}/chapters/$index');
       final res = await http.get(uri, headers: {'X-User-Id': _globalDeviceId}).timeout(const Duration(seconds: 20));
@@ -110,20 +157,26 @@ class _ReadingPageState extends State<ReadingPage> {
       setState(() { _content = chapter.content; _isLoadingContent = false; });
       unawaited(_saveProgressLocal());
       unawaited(_syncProgressToBackend());
-      WidgetsBinding.instance.addPostFrameCallback((_) { if (_scrollController.hasClients) _scrollController.jumpTo(0); });
     } catch (e) {
       if (!mounted) return;
-      setState(() { _error = e.toString(); _isLoadingContent = false; });
+      setState(() { _error = e.toString(); _isLoadingContent = false; _isFlipping = false; });
+      _flipController.reset();
     }
   }
 
-  void _goToPrev() => _currentChapterIndex > 0 ? _loadChapter(_currentChapterIndex - 1) : _showEdgeToast('已经是第一章了');
-  void _goToNext() => _currentChapterIndex < _chapters.length - 1 ? _loadChapter(_currentChapterIndex + 1) : _showEdgeToast('已经是最后一章了');
+  void _goToPrev() => _loadChapter(_currentChapterIndex - 1);
+  void _goToNext() => _loadChapter(_currentChapterIndex + 1);
 
   void _showEdgeToast(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).clearSnackBars();
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), duration: const Duration(seconds: 1), behavior: SnackBarBehavior.floating, margin: const EdgeInsets.only(bottom: 80, left: 60, right: 60), padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10)));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(message),
+      duration: const Duration(seconds: 1),
+      behavior: SnackBarBehavior.floating,
+      margin: const EdgeInsets.only(bottom: 80, left: 60, right: 60),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+    ));
   }
 
   void _jumpToChapter(int index) {
@@ -188,38 +241,190 @@ class _ReadingPageState extends State<ReadingPage> {
   @override
   Widget build(BuildContext context) {
     final theme = _currentTheme;
+    final totalChapters = _chapters.length;
+    final progressFraction = totalChapters > 0 ? (_currentChapterIndex + 1) / totalChapters : 0.0;
+
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: theme.background,
-      drawer: ChapterDrawer(theme: theme, bookTitle: widget.bookTitle, chapters: _chapters.map((c) => ChapterDrawerItem(index: c.index, title: c.title)).toList(), currentIndex: _currentChapterIndex, onChapterSelected: _jumpToChapter),
+      drawer: ChapterDrawer(
+        theme: theme,
+        bookTitle: widget.bookTitle,
+        chapters: _chapters.map((c) => ChapterDrawerItem(index: c.index, title: c.title)).toList(),
+        currentIndex: _currentChapterIndex,
+        onChapterSelected: _jumpToChapter,
+      ),
       body: SafeArea(
         child: Stack(
           children: [
-            Positioned.fill(child: GestureDetector(behavior: HitTestBehavior.translucent, onTap: _toggleMenu, child: _buildContentBody(theme))),
+            Positioned.fill(
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onTapUp: (details) {
+                  if (_isFlipping) return;
+                  final width = MediaQuery.of(context).size.width;
+                  if (details.localPosition.dx < width / 3) {
+                    _goToPrev();
+                  } else if (details.localPosition.dx > width * 2 / 3) {
+                    _goToNext();
+                  } else {
+                    _toggleMenu();
+                  }
+                },
+                onScaleStart: (_) {
+                  _baseFontSize = _fontSize;
+                },
+                onScaleUpdate: (details) {
+                  setState(() {
+                    _fontSize = (_baseFontSize * details.scale).clamp(14.0, 26.0);
+                  });
+                },
+                child: _buildContentBody(theme),
+              ),
+            ),
+            if (totalChapters > 1 && _showMenu)
+              Positioned(
+                right: 0, top: 0, bottom: 0,
+                child: _buildProgressBar(progressFraction),
+              ),
             if (_showMenu)
-              Positioned(top: 0, left: 0, right: 0, child: ReadingAppBar(theme: theme, bookTitle: widget.bookTitle, onBackPressed: () => Navigator.pop(context), onFavorite: _toggleFavorite, isFavorited: _isFavorited)),
+              Positioned(
+                top: 0, left: 0, right: 0,
+                child: ReadingAppBar(
+                  theme: theme,
+                  bookTitle: '${widget.bookTitle} · ${_currentChapterIndex + 1}/$totalChapters',
+                  onBackPressed: () => Navigator.pop(context),
+                  onFavorite: _toggleFavorite,
+                  isFavorited: _isFavorited,
+                ),
+              ),
             if (_showMenu)
-              Positioned(bottom: 0, left: 0, right: 0, child: ReadingBottomBar(theme: theme, fontSize: _fontSize, lineHeight: _lineHeight, currentChapterIndex: _currentChapterIndex, totalChapters: _chapters.length, onThemeChanged: (t) { setState(() => _currentTheme = t); _updateStatusBar(); }, onFontSizeChanged: (v) => setState(() => _fontSize = v), onLineHeightChanged: (v) => setState(() => _lineHeight = v), onPrevChapter: _goToPrev, onNextChapter: _goToNext, onOpenDrawer: () => _scaffoldKey.currentState?.openDrawer())),
+              Positioned(
+                bottom: 0, left: 0, right: 0,
+                child: ReadingBottomBar(
+                  theme: theme,
+                  fontSize: _fontSize,
+                  lineHeight: _lineHeight,
+                  currentChapterIndex: _currentChapterIndex,
+                  totalChapters: totalChapters,
+                  onThemeChanged: (t) { setState(() => _currentTheme = t); _updateStatusBar(); },
+                  onFontSizeChanged: (v) => setState(() => _fontSize = v),
+                  onLineHeightChanged: (v) => setState(() => _lineHeight = v),
+                  onPrevChapter: _goToPrev,
+                  onNextChapter: _goToNext,
+                  onOpenDrawer: () => _scaffoldKey.currentState?.openDrawer(),
+                ),
+              ),
           ],
         ),
       ),
     );
   }
 
+  Widget _buildProgressBar(double fraction) {
+    return Padding(
+      padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 60, bottom: 100),
+      child: Container(
+        width: 4,
+        decoration: BoxDecoration(
+          color: kInkGray.withAlpha(30),
+          borderRadius: BorderRadius.circular(2),
+        ),
+        margin: const EdgeInsets.only(right: 6),
+        child: FractionallySizedBox(
+          heightFactor: fraction,
+          alignment: Alignment.topCenter,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOutCubic,
+            width: 4,
+            decoration: BoxDecoration(
+              color: kGold,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildContentBody(ReadingTheme theme) {
-    if (_isLoadingToc || (_isLoadingContent && _content.isEmpty)) {
-      return Center(child: SizedBox(width: 32, height: 32, child: CircularProgressIndicator(strokeWidth: 2.5, color: theme.text.withAlpha(150))));
+    if (_isLoadingToc || (_isLoadingContent && _content.isEmpty && _previousContent.isEmpty)) {
+      return const Center(child: InkLoading());
     }
-    if (_error != null && _content.isEmpty) {
+    if (_error != null && _content.isEmpty && _previousContent.isEmpty) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(32),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.cloud_off_rounded, size: 52, color: Colors.grey[400]), const SizedBox(height: 16), Text('加载失败', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: theme.title)), const SizedBox(height: 8), Text(_error!, style: TextStyle(fontSize: 13, color: Colors.grey[500]), textAlign: TextAlign.center), const SizedBox(height: 20), FilledButton.tonalIcon(onPressed: _loadToc, icon: const Icon(Icons.refresh_rounded, size: 18), label: const Text('重试'))],),
+          child: GoldBorder(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.cloud_off_rounded, size: 52, color: kInkGray),
+                const SizedBox(height: 16),
+                Text('加载失败', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: theme.title)),
+                const SizedBox(height: 8),
+                Text(_error!, style: const TextStyle(fontSize: 13, color: kInkGray), textAlign: TextAlign.center),
+                const SizedBox(height: 20),
+                FilledButton.tonalIcon(
+                  onPressed: _loadToc,
+                  icon: const Icon(Icons.refresh_rounded, size: 18),
+                  label: const Text('重试'),
+                ),
+              ],
+            ),
+          ),
         ),
       );
     }
+
     final format = bookFormatFromString(_bookFormat);
-    final rendererChapters = _chapters.map((c) => RendererChapter(index: c.index, title: c.title, content: c.index == _currentChapterIndex ? _content : '')).toList();
-    return buildBookRenderer(format: format, chapters: rendererChapters, currentIndex: _currentChapterIndex, theme: theme, fontSize: _fontSize, lineHeight: _lineHeight, onPrevChapter: _goToPrev, onNextChapter: _goToNext);
+    final rendererChapters = _chapters.map((c) => RendererChapter(
+      index: c.index,
+      title: c.title,
+      content: c.index == _currentChapterIndex ? _content : '',
+    )).toList();
+
+    final currentPageChild = RepaintBoundary(
+      key: ValueKey('page-$_pageKey'),
+      child: buildBookRenderer(
+        format: format,
+        chapters: rendererChapters,
+        currentIndex: _currentChapterIndex,
+        theme: theme,
+        fontSize: _fontSize,
+        lineHeight: _lineHeight,
+        onPrevChapter: _goToPrev,
+        onNextChapter: _goToNext,
+      ),
+    );
+
+    if (!_isFlipping || _previousContent.isEmpty) {
+      return currentPageChild;
+    }
+
+    final prevRendererChapters = _chapters.map((c) => RendererChapter(
+      index: c.index,
+      title: c.title,
+      content: c.index == (_isNextPage ? _currentChapterIndex - 1 : _currentChapterIndex + 1) ? _previousContent : '',
+    )).toList();
+
+    final prevPageChild = buildBookRenderer(
+      format: format,
+      chapters: prevRendererChapters,
+      currentIndex: _isNextPage ? _currentChapterIndex - 1 : _currentChapterIndex + 1,
+      theme: theme,
+      fontSize: _fontSize,
+      lineHeight: _lineHeight,
+      onPrevChapter: _goToPrev,
+      onNextChapter: _goToNext,
+    );
+
+    return CurledPageTransition(
+      animation: _flipAnimation,
+      currentPage: prevPageChild,
+      nextPage: currentPageChild,
+      isNext: _isNextPage,
+    );
   }
 }

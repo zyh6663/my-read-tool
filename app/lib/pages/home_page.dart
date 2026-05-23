@@ -39,9 +39,9 @@ class HomePage extends StatelessWidget {
                     spacing: 10,
                     runSpacing: 10,
                     children: [
-                      FilledButton.icon(onPressed: onOpenBookshelf, icon: const Icon(Icons.bookmark_outline), label: const Text('书架')),
-                      OutlinedButton.icon(onPressed: onOpenSearch, icon: const Icon(Icons.search), label: const Text('搜索')),
-                      OutlinedButton.icon(onPressed: onOpenProfile, icon: const Icon(Icons.person_outline), label: const Text('我的')),
+                      FilledButton.icon(onPressed: onOpenBookshelf, icon: const Icon(Icons.bookmark_rounded), label: const Text('书架')),
+                      OutlinedButton.icon(onPressed: onOpenSearch, icon: const Icon(Icons.search_rounded), label: const Text('搜索')),
+                      OutlinedButton.icon(onPressed: onOpenProfile, icon: const Icon(Icons.person_rounded), label: const Text('我的')),
                     ],
                   ),
                   const SizedBox(height: 16),
@@ -109,9 +109,9 @@ class HomePage extends StatelessWidget {
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      Expanded(child: _StatCard(title: '阅读时长', value: '0 分钟', icon: Icons.timer_outlined)),
+                      Expanded(child: _StatCard(title: '阅读时长', value: '0 分钟', icon: Icons.timer_rounded)),
                       const SizedBox(width: 12),
-                      Expanded(child: _StatCard(title: '书籍数量', value: '0 本', icon: Icons.menu_book_outlined)),
+                      Expanded(child: _StatCard(title: '书籍数量', value: '0 本', icon: Icons.menu_book_rounded)),
                     ],
                   ),
                   const SizedBox(height: 12),

@@ -7,7 +7,10 @@ import 'package:http/http.dart' as http;
 import 'animated_glass.dart';
 import 'auth_pages.dart';
 import 'glass_widgets.dart';
+import 'main.dart';
 import 'reading_page.dart';
+import 'widgets/book_cover.dart';
+import 'widgets/ink_loading.dart';
 
 class ShelfBook {
   final int id;
@@ -190,8 +193,9 @@ class _BookShelfPageState extends State<BookShelfPage> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('移除书籍'),
-        content: Text('确定要将《${book.bookTitle}》从书架移除吗？'),
+        backgroundColor: kPaperWarm,
+        title: const Text('移除书籍', style: TextStyle(color: kInkWarm)),
+        content: Text('确定要将《${book.bookTitle}》从书架移除吗？', style: const TextStyle(color: kInkWarm)),
         actions: [
           TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('取消')),
           TextButton(onPressed: () { Navigator.of(ctx).pop(); _removeBook(book); }, child: const Text('确认')),
@@ -211,7 +215,7 @@ class _BookShelfPageState extends State<BookShelfPage> {
   Widget build(BuildContext context) => SafeArea(child: _buildBody());
 
   Widget _buildBody() {
-    if (_isLoading) return const Center(child: CircularProgressIndicator());
+    if (_isLoading) return const Center(child: InkLoading());
     if (_errorMessage != null) {
       return Padding(
         padding: const EdgeInsets.all(20),
@@ -243,11 +247,14 @@ class _BookShelfPageState extends State<BookShelfPage> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(_query.isEmpty ? Icons.library_books_outlined : Icons.search_off_rounded, size: 80, color: Colors.grey),
+                    CustomPaint(
+                      size: const Size(80, 80),
+                      painter: _OpenBookPainter(),
+                    ),
                     const SizedBox(height: 16),
-                    Text(_query.isEmpty ? '书架空空如也' : '没有找到相关书籍'),
+                    const Text('书中自有黄金屋', style: TextStyle(color: kInkGray, fontSize: 14, letterSpacing: 4)),
                     const SizedBox(height: 10),
-                    if (_query.isEmpty) FilledButton.icon(onPressed: _isUploading ? null : _pickAndUploadBook, icon: const Icon(Icons.upload_file), label: const Text('上传本地图书')),
+                    if (_query.isEmpty) FilledButton.icon(onPressed: _isUploading ? null : _pickAndUploadBook, icon: const Icon(Icons.upload_file_rounded), label: const Text('上传本地图书')),
                   ],
                 ),
               ),
@@ -281,19 +288,20 @@ class _BookShelfPageState extends State<BookShelfPage> {
                     onChanged: (value) => setState(() => _query = value),
                     decoration: InputDecoration(
                       hintText: '搜索书名或作者',
-                      prefixIcon: const Icon(Icons.search_rounded),
+                      prefixIcon: const Icon(Icons.search_rounded, color: kInkGray),
                       suffixIcon: _query.isEmpty
                           ? null
                           : IconButton(
-                              icon: const Icon(Icons.close_rounded),
+                              icon: const Icon(Icons.close_rounded, color: kInkGray),
                               onPressed: () {
                                 _searchController.clear();
                                 setState(() => _query = '');
                               },
                             ),
+                      hintStyle: const TextStyle(color: kInkGray),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: BorderSide.none),
                       filled: true,
-                      fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withAlpha(90),
+                      fillColor: kPaperDark.withAlpha(120),
                     ),
                   ),
                 ),
@@ -306,15 +314,15 @@ class _BookShelfPageState extends State<BookShelfPage> {
             const SizedBox(height: 10),
             Row(
               children: [
-                Icon(Icons.auto_stories_rounded, size: 16, color: Theme.of(context).colorScheme.primary),
+                Icon(Icons.auto_stories_rounded, size: 16, color: kGold),
                 const SizedBox(width: 6),
-                Text('共 ${_books.length} 本', style: Theme.of(context).textTheme.bodySmall),
+                Text('共 ${_books.length} 本', style: const TextStyle(color: kInkWarm, fontSize: 12)),
                 if (_query.isNotEmpty) ...[
                   const SizedBox(width: 8),
-                  Text('· 匹配 ${_filteredBooks.length} 本', style: Theme.of(context).textTheme.bodySmall),
+                  Text('· 匹配 ${_filteredBooks.length} 本', style: const TextStyle(color: kInkWarm, fontSize: 12)),
                 ],
                 const Spacer(),
-                Text('下拉也可刷新', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                const Text('下拉也可刷新', style: TextStyle(color: kInkGray, fontSize: 12)),
               ],
             ),
           ],
@@ -324,8 +332,6 @@ class _BookShelfPageState extends State<BookShelfPage> {
   }
 
   Widget _buildBookCard(BuildContext context, ShelfBook book, int index) {
-    final icon = book.isEpub ? Icons.menu_book_rounded : Icons.text_snippet_rounded;
-    final typeBadge = book.isEpub ? 'EPUB' : 'TXT';
     return TweenAnimationBuilder<double>(
       key: ValueKey(book.id),
       tween: Tween(begin: 0.96, end: 1),
@@ -333,54 +339,14 @@ class _BookShelfPageState extends State<BookShelfPage> {
       curve: Curves.easeOutCubic,
       builder: (context, value, child) => Transform.scale(scale: value, child: child),
       child: SlideFadeIn(
-        child: GlassPanel(
-          padding: EdgeInsets.zero,
-          borderRadius: BorderRadius.circular(28),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(28),
-              onTap: () => _onTapBook(book),
-              onLongPress: () => _showRemoveDialog(book),
-              child: Ink(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Theme.of(context).colorScheme.primary.withAlpha(28), Theme.of(context).colorScheme.surface.withAlpha(30)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(28),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(14),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        width: 70,
-                        height: 70,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: LinearGradient(colors: [Theme.of(context).colorScheme.primaryContainer, Theme.of(context).colorScheme.secondaryContainer], begin: Alignment.topLeft, end: Alignment.bottomRight),
-                          boxShadow: [BoxShadow(color: Theme.of(context).colorScheme.primary.withAlpha(35), blurRadius: 18, offset: const Offset(0, 8))],
-                        ),
-                        child: Icon(icon, size: 32),
-                      ),
-                      const SizedBox(height: 10),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface.withAlpha(140), borderRadius: BorderRadius.circular(999)),
-                        child: Text(typeBadge, style: Theme.of(context).textTheme.labelSmall),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(book.bookTitle, maxLines: 2, textAlign: TextAlign.center, style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
-                      const SizedBox(height: 6),
-                      Text(book.bookAuthor, maxLines: 1, textAlign: TextAlign.center, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
-                    ],
-                  ),
-                ),
-              ),
-            ),
+        child: GestureDetector(
+          onTap: () => _onTapBook(book),
+          onLongPress: () => _showRemoveDialog(book),
+          child: BookCover(
+            title: book.bookTitle,
+            author: book.bookAuthor,
+            width: double.infinity,
+            height: 170,
           ),
         ),
       ),
@@ -408,14 +374,60 @@ class _ToolButton extends StatelessWidget {
             width: 46,
             height: 46,
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surfaceContainerHighest.withAlpha(120),
+              color: kPaperWarm.withAlpha(120),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withAlpha(30)),
+              border: Border.all(color: kGold.withAlpha(30)),
             ),
-            child: Icon(icon),
+            child: Icon(icon, color: kGold),
           ),
         ),
       ),
     );
   }
+}
+
+class _OpenBookPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final cx = size.width / 2;
+    final cy = size.height / 2;
+    final w = size.width * 0.35;
+    final h = size.height * 0.4;
+
+    final pagePaint = Paint()
+      ..color = kInkGray.withAlpha(60)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.8;
+
+    final coverPaint = Paint()
+      ..color = kInkGray.withAlpha(100)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2;
+
+    // Left page
+    final leftPath = Path()
+      ..moveTo(cx, cy - h)
+      ..quadraticBezierTo(cx - w * 0.5, cy - h * 0.7, cx - w, cy)
+      ..quadraticBezierTo(cx - w * 0.5, cy + h * 0.7, cx, cy + h);
+    canvas.drawPath(leftPath, pagePaint);
+
+    // Right page
+    final rightPath = Path()
+      ..moveTo(cx, cy - h)
+      ..quadraticBezierTo(cx + w * 0.5, cy - h * 0.7, cx + w, cy)
+      ..quadraticBezierTo(cx + w * 0.5, cy + h * 0.7, cx, cy + h);
+    canvas.drawPath(rightPath, pagePaint);
+
+    // Spine line
+    canvas.drawLine(Offset(cx, cy - h), Offset(cx, cy + h), coverPaint);
+
+    // Gold dot at spine
+    final dotPaint = Paint()
+      ..color = kGold.withAlpha(150)
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(Offset(cx, cy), 2.5, dotPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

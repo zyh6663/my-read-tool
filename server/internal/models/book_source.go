@@ -10,4 +10,5 @@ type BookSource struct {
 	Enabled   bool   `json:"enabled" gorm:"default:true"`
 	Priority  int    `json:"priority" gorm:"default:0"`
 	IsBuiltin bool   `json:"is_builtin" gorm:"default:false"`
+	UserID    string `json:"user_id" gorm:"index"`
 }

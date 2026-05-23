@@ -30,7 +30,7 @@ func respondError(c *gin.Context, status int, msg string) {
 
 func ListSources(c *gin.Context) {
 	var sources []models.BookSource
-	if err := database.DB.Order("priority desc, id desc").Find(&sources).Error; err != nil {
+	if err := database.DB.Where("user_id = ?", extractUserID(c)).Order("priority desc, id desc").Find(&sources).Error; err != nil {
 		respondError(c, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -52,7 +52,7 @@ func ImportSource(c *gin.Context) {
 		respondError(c, http.StatusConflict, "来源已存在")
 		return
 	}
-	item := models.BookSource{Name: req.Name, BaseURL: req.BaseURL, RuleJSON: req.RuleJSON, Enabled: req.Enabled, Priority: req.Priority, IsBuiltin: req.IsBuiltin}
+	item := models.BookSource{Name: req.Name, BaseURL: req.BaseURL, RuleJSON: req.RuleJSON, Enabled: req.Enabled, Priority: req.Priority, IsBuiltin: req.IsBuiltin, UserID: extractUserID(c)}
 	if err := database.DB.Create(&item).Error; err != nil {
 		respondError(c, http.StatusInternalServerError, err.Error())
 		return
@@ -65,6 +65,10 @@ func UpdateSource(c *gin.Context) {
 	var src models.BookSource
 	if err := database.DB.First(&src, id).Error; err != nil {
 		respondError(c, http.StatusNotFound, "来源不存在")
+		return
+	}
+	if src.UserID != extractUserID(c) {
+		respondError(c, http.StatusForbidden, "无权限修改此书源")
 		return
 	}
 	if src.IsBuiltin {
@@ -93,6 +97,7 @@ func DeleteSource(c *gin.Context) {
 	id := c.Param("id")
 	var src models.BookSource
 	if err := database.DB.First(&src, id).Error; err != nil { respondError(c, http.StatusNotFound, "来源不存在"); return }
+	if src.UserID != extractUserID(c) { respondError(c, http.StatusForbidden, "无权限删除此书源"); return }
 	if src.IsBuiltin { respondError(c, http.StatusForbidden, "内置书源不可删除"); return }
 	if err := database.DB.Delete(&src).Error; err != nil { respondError(c, http.StatusInternalServerError, err.Error()); return }
 	respondData(c, http.StatusOK, gin.H{"deleted": true})

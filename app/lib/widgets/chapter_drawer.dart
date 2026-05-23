@@ -2,6 +2,8 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
+import '../main.dart';
+import '../widgets/ink_loading.dart';
 import 'reading_bottom_bar.dart';
 
 // =====================================================================
@@ -59,7 +61,7 @@ class ChapterDrawer extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
                           Icon(Icons.menu_book_rounded,
-                              size: 36, color: theme.title.withAlpha(200)),
+                              size: 36, color: kGold),
                           const SizedBox(height: 12),
                           Text(
                             bookTitle,
@@ -91,14 +93,7 @@ class ChapterDrawer extends StatelessWidget {
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  SizedBox(
-                                    width: 24,
-                                    height: 24,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: theme.text.withAlpha(120),
-                                    ),
-                                  ),
+                                  const InkLoading(size: 36),
                                   const SizedBox(height: 12),
                                   Text(
                                     '加载章节列表中...',
@@ -130,14 +125,14 @@ class ChapterDrawer extends StatelessWidget {
                                     alignment: Alignment.center,
                                     decoration: BoxDecoration(
                                       color: isCurrent
-                                          ? theme.title.withAlpha(180)
+                                          ? kGold.withAlpha(180)
                                           : Colors.transparent,
                                       borderRadius:
                                           BorderRadius.circular(14),
                                       border: isCurrent
                                           ? null
                                           : Border.all(
-                                              color: theme.divider),
+                                              color: kGold.withAlpha(60)),
                                     ),
                                     child: Text(
                                       '${ch.index}',
@@ -145,7 +140,7 @@ class ChapterDrawer extends StatelessWidget {
                                         fontSize: 12,
                                         fontWeight: FontWeight.w600,
                                         color: isCurrent
-                                            ? Colors.white
+                                            ? kPaperDark
                                             : theme.text.withAlpha(180),
                                       ),
                                     ),
@@ -158,7 +153,7 @@ class ChapterDrawer extends StatelessWidget {
                                           ? FontWeight.w700
                                           : FontWeight.normal,
                                       color: isCurrent
-                                          ? theme.title
+                                          ? kGold
                                           : theme.text,
                                     ),
                                     maxLines: 2,
@@ -167,8 +162,7 @@ class ChapterDrawer extends StatelessWidget {
                                   trailing: isCurrent
                                       ? Icon(Icons.bookmark_rounded,
                                           size: 18,
-                                          color:
-                                              theme.title.withAlpha(180))
+                                          color: kGold)
                                       : null,
                                   onTap: () => onChapterSelected(i),
                                 ),

@@ -20,11 +20,11 @@ class AppScaffold extends StatelessWidget {
         selectedIndex: currentIndex,
         onDestinationSelected: onTabChanged,
         destinations: const [
-          NavigationDestination(icon: Icon(Icons.home_outlined), label: '首页'),
-          NavigationDestination(icon: Icon(Icons.bookmark_outline), label: '书架'),
-          NavigationDestination(icon: Icon(Icons.person_outline), label: '我的'),
-          NavigationDestination(icon: Icon(Icons.settings_outlined), label: '设置'),
-          NavigationDestination(icon: Icon(Icons.favorite_border), label: '收藏'),
+          NavigationDestination(icon: Icon(Icons.home_rounded), label: '首页'),
+          NavigationDestination(icon: Icon(Icons.bookmark_rounded), label: '书架'),
+          NavigationDestination(icon: Icon(Icons.person_rounded), label: '我的'),
+          NavigationDestination(icon: Icon(Icons.settings_rounded), label: '设置'),
+          NavigationDestination(icon: Icon(Icons.favorite_rounded), label: '收藏'),
         ],
       ),
     );

@@ -589,6 +589,8 @@ class _BookListTile extends StatelessWidget {
                           ? Image.network(
                               book.coverUrl,
                               fit: BoxFit.cover,
+                              cacheWidth: 88,
+                              cacheHeight: 120,
                               errorBuilder: (_, _, _) => _fallbackCover(theme),
                             )
                           : _fallbackCover(theme),

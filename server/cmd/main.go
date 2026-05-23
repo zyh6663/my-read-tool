@@ -73,6 +73,7 @@ func main() {
 	r.POST("/api/auth/migrate", authHandler.Migrate)
 
 	sources := r.Group("/api/v1/sources")
+	sources.Use(api.AuthMiddleware())
 	{
 		sources.GET("", api.ListSources)
 		sources.POST("/import", api.ImportSource)

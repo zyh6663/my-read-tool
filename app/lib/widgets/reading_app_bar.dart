@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
+import '../main.dart';
 import 'reading_bottom_bar.dart';
 
 class ReadingAppBar extends StatelessWidget {
@@ -26,37 +27,35 @@ class ReadingAppBar extends StatelessWidget {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
         child: Container(
+          height: 48,
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                theme.appBar.withAlpha(190),
-                theme.appBar.withAlpha(150),
-              ],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-            ),
+            color: theme.appBar.withAlpha(230),
             border: Border(
-              bottom: BorderSide(color: theme.divider.withAlpha(90), width: 0.6),
+              bottom: BorderSide(color: kGold.withAlpha(60), width: 0.6),
             ),
           ),
           child: SafeArea(
             bottom: false,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               child: Row(
                 children: [
-                  _IconGlassButton(icon: Icons.arrow_back_rounded, color: theme.title, onTap: onBackPressed),
+                  _IconGlassButton(
+                    icon: Icons.arrow_back_rounded,
+                    color: kGold,
+                    onTap: onBackPressed,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       bookTitle,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: theme.title),
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: kInkWarm),
                     ),
                   ),
                   _IconGlassButton(
-                    icon: isFavorited ? Icons.favorite : Icons.favorite_border,
-                    color: isFavorited ? Colors.redAccent : theme.title,
+                    icon: isFavorited ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                    color: isFavorited ? kVermilion : kGold,
                     onTap: onFavorite,
                   ),
                 ],
@@ -84,12 +83,12 @@ class _IconGlassButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         onTap: onTap,
         child: Container(
-          width: 42,
-          height: 42,
+          width: 40,
+          height: 40,
           decoration: BoxDecoration(
-            color: Colors.white.withAlpha(24),
+            color: kPaperDark.withAlpha(80),
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: Colors.white.withAlpha(25)),
+            border: Border.all(color: kGold.withAlpha(30)),
           ),
           child: Icon(icon, color: color, size: 22),
         ),

@@ -2,6 +2,8 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
+import '../main.dart';
+
 class ReadingTheme {
   final Color background;
   final Color text;
@@ -12,9 +14,13 @@ class ReadingTheme {
 
   const ReadingTheme({required this.background, required this.text, required this.title, required this.appBar, required this.divider, required this.label});
 
-  static const eyeCare = ReadingTheme(background: Color(0xFFFFF8E1), text: Color(0xFF5A5A5A), title: Color(0xFF3E3232), appBar: Color(0xFFFFF8E1), divider: Color(0xFFE8DCC8), label: '护眼');
-  static const dark = ReadingTheme(background: Color(0xFF1E1E1E), text: Color(0xFFCCCCCC), title: Color(0xFFDDDDDD), appBar: Color(0xFF1E1E1E), divider: Color(0xFF333333), label: '暗黑');
-  static const parchment = ReadingTheme(background: Color(0xFFF0E6D3), text: Color(0xFF4A4A4A), title: Color(0xFF3E3232), appBar: Color(0xFFF0E6D3), divider: Color(0xFFD8CEB8), label: '羊皮纸');
+  static const darkPaper = ReadingTheme(background: Color(0xFF1A1210), text: Color(0xFFE8D5B7), title: Color(0xFFE8D5B7), appBar: Color(0xFF231A15), divider: Color(0xFF3A2A20), label: '暗宣纸');
+  static const warmWood = ReadingTheme(background: Color(0xFF2A221D), text: Color(0xFFE8D5B7), title: Color(0xFFE8D5B7), appBar: Color(0xFF231A15), divider: Color(0xFF4A3A2A), label: '暖木色');
+  static const lightPaper = ReadingTheme(background: Color(0xFFF5F0E8), text: Color(0xFF3C2415), title: Color(0xFF3C2415), appBar: Color(0xFFE8DCC8), divider: Color(0xFFD4C5A9), label: '亮宣纸');
+  static const pineGreen = ReadingTheme(background: Color(0xFF1A2A1A), text: Color(0xFFC9D5B7), title: Color(0xFFC9D5B7), appBar: Color(0xFF152015), divider: Color(0xFF2A3A2A), label: '松石绿');
+  static const pureBlackGold = ReadingTheme(background: Color(0xFF000000), text: Color(0xFFC9A96E), title: Color(0xFFC9A96E), appBar: Color(0xFF0A0A0A), divider: Color(0xFF2A2A2A), label: '纯黑金');
+
+  static const List<ReadingTheme> all = [darkPaper, warmWood, lightPaper, pineGreen, pureBlackGold];
 }
 
 class ReadingBottomBar extends StatelessWidget {
@@ -38,19 +44,20 @@ class ReadingBottomBar extends StatelessWidget {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
         child: Container(
+          height: 44,
           decoration: BoxDecoration(
-            gradient: LinearGradient(colors: [theme.appBar.withAlpha(190), theme.appBar.withAlpha(150)], begin: Alignment.topCenter, end: Alignment.bottomCenter),
-            border: Border(top: BorderSide(color: theme.divider.withAlpha(90), width: 0.6)),
+            color: theme.appBar.withAlpha(220),
+            border: Border(top: BorderSide(color: kGold.withAlpha(60), width: 0.6)),
           ),
           child: SafeArea(
             top: false,
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+              padding: const EdgeInsets.fromLTRB(12, 6, 12, 6),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   _CustomizeRow(theme: theme, fontSize: fontSize, lineHeight: lineHeight, onThemeChanged: onThemeChanged, onFontSizeChanged: onFontSizeChanged, onLineHeightChanged: onLineHeightChanged),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 4),
                   Row(
                     children: [
                       _BottomBtn(icon: Icons.skip_previous_rounded, label: '上一章', enabled: currentChapterIndex > 0, onTap: currentChapterIndex > 0 ? onPrevChapter : null),
@@ -84,41 +91,41 @@ class _CustomizeRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const themes = [ReadingTheme.eyeCare, ReadingTheme.dark, ReadingTheme.parchment];
+    final themes = ReadingTheme.all;
     return Column(
       children: [
         SizedBox(
-          height: 38,
+          height: 34,
           child: Row(
             children: [
               ...themes.map((t) {
                 final isActive = t == theme;
                 return Padding(
-                  padding: const EdgeInsets.only(right: 8),
+                  padding: const EdgeInsets.only(right: 6),
                   child: GestureDetector(
                     onTap: () => onThemeChanged(t),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 180),
-                      width: 30,
-                      height: 30,
+                      width: 24,
+                      height: 24,
                       decoration: BoxDecoration(
                         color: t.background,
                         shape: BoxShape.circle,
-                        border: Border.all(color: isActive ? theme.title : t.divider, width: isActive ? 2.5 : 1.2),
-                        boxShadow: [BoxShadow(color: Colors.black.withAlpha(isActive ? 24 : 10), blurRadius: 10, offset: const Offset(0, 4))],
+                        border: Border.all(color: isActive ? kGold : t.divider, width: isActive ? 2.5 : 1.0),
+                        boxShadow: [BoxShadow(color: Colors.black.withAlpha(isActive ? 40 : 10), blurRadius: 10, offset: const Offset(0, 4))],
                       ),
-                      child: isActive ? Icon(Icons.check, size: 14, color: theme.text) : null,
+                      child: isActive ? const Icon(Icons.check, size: 12, color: kGold) : null,
                     ),
                   ),
                 );
               }),
-              const SizedBox(width: 8),
+              const SizedBox(width: 4),
               Container(width: 1, height: 18, color: theme.divider),
               const SizedBox(width: 8),
               _FontSizeBtn(label: 'A-', onTap: () => onFontSizeChanged((fontSize - 1).clamp(12.0, 30.0)), theme: theme),
               Expanded(
                 child: SliderTheme(
-                  data: SliderTheme.of(context).copyWith(activeTrackColor: theme.title.withAlpha(150), inactiveTrackColor: theme.divider, thumbColor: theme.title, overlayColor: theme.title.withAlpha(20), trackHeight: 2.5, thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6)),
+                  data: SliderTheme.of(context).copyWith(activeTrackColor: kGold.withAlpha(150), inactiveTrackColor: theme.divider, thumbColor: kGold, overlayColor: kGold.withAlpha(20), trackHeight: 2.5, thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6)),
                   child: Slider(value: fontSize, min: 12, max: 30, divisions: 18, label: '${fontSize.round()}', onChanged: onFontSizeChanged),
                 ),
               ),
@@ -127,9 +134,9 @@ class _CustomizeRow extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 4),
         SizedBox(
-          height: 30,
+          height: 26,
           child: Row(
             children: [
               Text('行距', style: TextStyle(fontSize: 11, color: theme.text.withAlpha(150))),
@@ -142,7 +149,7 @@ class _CustomizeRow extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: SliderTheme(
-                  data: SliderTheme.of(context).copyWith(activeTrackColor: theme.title.withAlpha(150), inactiveTrackColor: theme.divider, thumbColor: theme.title, overlayColor: theme.title.withAlpha(20), trackHeight: 2.0, thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 5)),
+                  data: SliderTheme.of(context).copyWith(activeTrackColor: kGold.withAlpha(150), inactiveTrackColor: theme.divider, thumbColor: kGold, overlayColor: kGold.withAlpha(20), trackHeight: 2.0, thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 5)),
                   child: Slider(value: lineHeight, min: 1.0, max: 2.0, divisions: 20, label: lineHeight.toStringAsFixed(1), onChanged: onLineHeightChanged),
                 ),
               ),
@@ -166,11 +173,11 @@ class _LineHeightBtn extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        height: 24,
+        height: 22,
         padding: const EdgeInsets.symmetric(horizontal: 8),
         alignment: Alignment.center,
-        decoration: BoxDecoration(color: isActive ? theme.title.withAlpha(30) : Colors.transparent, border: Border.all(color: isActive ? theme.title.withAlpha(120) : theme.divider), borderRadius: BorderRadius.circular(999)),
-        child: Text(label, style: TextStyle(fontSize: 10, fontWeight: isActive ? FontWeight.w600 : FontWeight.normal, color: isActive ? theme.title : theme.text.withAlpha(180))),
+        decoration: BoxDecoration(color: isActive ? kGold.withAlpha(30) : Colors.transparent, border: Border.all(color: isActive ? kGold.withAlpha(120) : theme.divider), borderRadius: BorderRadius.circular(999)),
+        child: Text(label, style: TextStyle(fontSize: 10, fontWeight: isActive ? FontWeight.w600 : FontWeight.normal, color: isActive ? kGold : theme.text.withAlpha(180))),
       ),
     );
   }
@@ -191,8 +198,8 @@ class _BottomBtn extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
         onTap: active ? onTap : null,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [Icon(icon, size: 20, color: active ? Colors.grey[700] : Colors.grey[350]), const SizedBox(height: 1), Text(label, style: TextStyle(fontSize: 10, color: active ? Colors.grey[600] : Colors.grey[350]))]),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [Icon(icon, size: 20, color: active ? kGold : const Color(0xFF5A5040)), const SizedBox(height: 1), Text(label, style: TextStyle(fontSize: 10, color: active ? kGold : const Color(0xFF5A5040)))]),
         ),
       ),
     );
