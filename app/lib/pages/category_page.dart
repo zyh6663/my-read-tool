@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../animated_glass.dart';
 import '../glass_widgets.dart';
+import '../reading_page.dart';
 import '../services/search_service.dart';
 
 /// 分类关键词映射表（顺序匹配，命中第一个就归类）
@@ -184,34 +185,20 @@ class _CategoryPageState extends State<CategoryPage> {
     _fetchAndClassify();
   }
 
-  /// 用 SearchService.search 搜索高频字获取书籍并自动归类
+  /// 通过 RemoteListBooks 获取完整书库并自动归类
   Future<void> _fetchAndClassify() async {
-    final seen = <String>{};
     final merged = <_BookItem>[];
 
     try {
-      // 用常见高频字搜索，快速获取大量书籍数据
-      var results = await SearchService.search('的', page: 1);
+      final results = await SearchService.listRemoteBooks();
       for (final r in results) {
-        if (seen.add(r.sourceBookId)) {
-          merged.add(_BookItem.fromSearchResult(r));
-        }
-      }
-
-      // 如果第一页数据太少，再拉一页
-      if (merged.length < 50) {
-        results = await SearchService.search('的', page: 2);
-        for (final r in results) {
-          if (seen.add(r.sourceBookId)) {
-            merged.add(_BookItem.fromSearchResult(r));
-          }
-        }
+        merged.add(_BookItem.fromSearchResult(r));
       }
     } catch (e) {
       if (!mounted) return;
       setState(() {
         _loading = false;
-        _error = '搜索失败: ${e.toString().length > 200 ? e.toString().substring(0, 200) : e}';
+        _error = '获取书库失败: ${e.toString().length > 200 ? e.toString().substring(0, 200) : e}';
       });
       return;
     }
@@ -364,7 +351,6 @@ class _CategoryPageState extends State<CategoryPage> {
   }
 
   Future<void> _onBookTap(BuildContext context, _BookItem book) async {
-    // 显示加载
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -376,7 +362,6 @@ class _CategoryPageState extends State<CategoryPage> {
     try {
       final detail = await SearchService.getDetail(book.sourceId, book.sourceBookId);
       if (!mounted) return;
-      // 展示详情对话框
       if (!context.mounted) return;
       _showBookDetail(context, detail);
     } catch (e) {
@@ -429,7 +414,30 @@ class _CategoryPageState extends State<CategoryPage> {
                 '作者: ${detail.author.isNotEmpty ? detail.author : '未知'}',
                 style: theme.textTheme.bodyMedium,
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 12),
+
+              // 操作按钮：导入到书架 + 开始阅读
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => _importBookToShelf(detail),
+                      icon: const Icon(Icons.download, size: 18),
+                      label: const Text('导入到书架'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: () => _startReading(detail, ctx),
+                      icon: const Icon(Icons.play_arrow, size: 18),
+                      label: const Text('开始阅读'),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+
               Text(
                 '来源: ${detail.sourceName}  ·  共 ${detail.chapterCount} 章',
                 style: theme.textTheme.bodySmall?.copyWith(
@@ -478,6 +486,71 @@ class _CategoryPageState extends State<CategoryPage> {
         ),
       ),
     );
+  }
+
+  Future<void> _importBookToShelf(BookDetail detail) async {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('正在导入书籍…'), duration: Duration(seconds: 1)),
+    );
+    try {
+      final res = await SearchService.importBook(detail.sourceId, detail.sourceBookId, autoAddToShelf: true);
+      for (int i = 0; i < 60; i++) {
+        await Future.delayed(const Duration(seconds: 1));
+        final progress = await SearchService.getProgress(res.taskId);
+        if (progress.status == 'completed') {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('《${detail.title}》已导入到书架')),
+          );
+          return;
+        }
+        if (progress.status == 'failed') {
+          throw Exception(progress.error.isNotEmpty ? progress.error : '导入失败');
+        }
+      }
+      throw Exception('导入超时');
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('导入失败: $e')),
+      );
+    }
+  }
+
+  Future<void> _startReading(BookDetail detail, BuildContext sheetContext) async {
+    Navigator.of(sheetContext).pop();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('正在准备阅读…'), duration: Duration(seconds: 1)),
+    );
+    try {
+      final res = await SearchService.importBook(detail.sourceId, detail.sourceBookId, autoAddToShelf: true);
+      int? bookId;
+      for (int i = 0; i < 60; i++) {
+        await Future.delayed(const Duration(seconds: 1));
+        final progress = await SearchService.getProgress(res.taskId);
+        if (progress.status == 'completed') {
+          bookId = progress.bookId;
+          break;
+        }
+        if (progress.status == 'failed') {
+          throw Exception(progress.error.isNotEmpty ? progress.error : '导入失败');
+        }
+      }
+      if (bookId == null || bookId == 0) throw Exception('导入超时或未获取到书籍ID');
+      if (!mounted) return;
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => ReadingPage(bookId: bookId!, bookTitle: detail.title),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('准备阅读失败: $e')),
+      );
+    }
   }
 }
 

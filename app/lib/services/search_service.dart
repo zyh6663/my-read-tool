@@ -61,8 +61,17 @@ class ImportResponse {
 class ImportProgress {
   final String taskId;
   final double progress;
-  const ImportProgress({required this.taskId, required this.progress});
-  factory ImportProgress.fromJson(Map<String, dynamic> json) => ImportProgress(taskId: json['task_id'] as String? ?? '', progress: (json['progress'] as num?)?.toDouble() ?? 0);
+  final String status;
+  final String error;
+  final int bookId;
+  const ImportProgress({required this.taskId, required this.progress, required this.status, required this.error, required this.bookId});
+  factory ImportProgress.fromJson(Map<String, dynamic> json) => ImportProgress(
+        taskId: json['task_id'] as String? ?? '',
+        progress: (json['progress'] as num?)?.toDouble() ?? 0,
+        status: json['status'] as String? ?? '',
+        error: json['error'] as String? ?? '',
+        bookId: json['book_id'] as int? ?? 0,
+      );
 }
 
 class SearchService {
@@ -86,13 +95,31 @@ class SearchService {
     return BookDetail.fromJson(body['data'] as Map<String, dynamic>);
   }
 
-  static Future<ImportResponse> importBook(int sourceId, String bookId, {String? chapterRange}) async {
-    final payload = <String, dynamic>{'source_id': sourceId, 'book_id': bookId};
+  static Future<ImportResponse> importBook(int sourceId, String bookId, {String? chapterRange, bool autoAddToShelf = false}) async {
+    final payload = <String, dynamic>{'source_id': sourceId, 'book_id': bookId, 'auto_add_to_shelf': autoAddToShelf};
     if (chapterRange != null) payload['chapter_range'] = chapterRange;
     final res = await http.post(Uri.parse('${ApiConfig.baseUrl}/api/v1/books/import'), headers: {'Content-Type': 'application/json'}, body: jsonEncode(payload));
     final body = jsonDecode(res.body) as Map<String, dynamic>;
     if (res.statusCode != 202) throw Exception(body['error'] ?? '导入失败');
     return ImportResponse.fromJson(body['data'] as Map<String, dynamic>);
+  }
+
+  static Future<List<SearchResult>> listRemoteBooks({String? sourceId}) async {
+    final uri = Uri.parse('${ApiConfig.baseUrl}/api/books/remote_list');
+    final res = await http.get(uri);
+    final body = jsonDecode(res.body) as Map<String, dynamic>;
+    if (res.statusCode != 200) throw Exception(body['error'] ?? '获取书库失败');
+    final data = body['data'] as List<dynamic>? ?? [];
+    return data.cast<Map<String, dynamic>>().map((e) => SearchResult(
+          sourceId: e['source_id'] as int? ?? 0,
+          sourceName: e['source_name'] as String? ?? '',
+          sourceBookId: e['source_book_id'] as String? ?? '',
+          title: e['title'] as String? ?? '',
+          author: e['author'] as String? ?? '',
+          description: '',
+          coverUrl: '',
+          chapterCount: 0,
+        )).toList();
   }
 
   static Future<ImportProgress> getProgress(String taskId) async {

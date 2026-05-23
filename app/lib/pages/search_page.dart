@@ -1,11 +1,9 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 
 import '../animated_glass.dart';
 import '../auth_pages.dart';
 import '../glass_widgets.dart';
+import '../reading_page.dart';
 import '../services/search_service.dart';
 import '../services/source_service.dart';
 
@@ -167,7 +165,29 @@ class _SearchPageState extends State<SearchPage> {
                 '作者: ${detail.author.isNotEmpty ? detail.author : '未知'}',
                 style: theme.textTheme.bodyMedium,
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 12),
+
+              // 操作按钮：导入到书架 + 开始阅读
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => _importBookToShelf(detail),
+                      icon: const Icon(Icons.download, size: 18),
+                      label: const Text('导入到书架'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: () => _startReading(detail, ctx),
+                      icon: const Icon(Icons.play_arrow, size: 18),
+                      label: const Text('开始阅读'),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
 
               // 来源 & 章节数
               Text(
@@ -231,29 +251,77 @@ class _SearchPageState extends State<SearchPage> {
   // 点击章节 → 获取内容 → 跳转阅读页
   // ---------------------------------------------------------------
   Future<void> _openChapter(BookDetail book, ChapterItem chapter) async {
+    // 点击章节时，先导入书籍再进行阅读
+    await _importAndNavigate(book);
+  }
+
+  Future<void> _importBookToShelf(BookDetail detail) async {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('正在加载《${chapter.title}》…'),
-        duration: const Duration(seconds: 1),
-      ),
+      const SnackBar(content: Text('正在导入书籍…'), duration: Duration(seconds: 1)),
     );
-
     try {
-      final detail = await SearchService.getDetail(book.sourceId, book.sourceBookId);
+      final res = await SearchService.importBook(detail.sourceId, detail.sourceBookId, autoAddToShelf: true);
+      // 轮询进度
+      for (int i = 0; i < 60; i++) {
+        await Future.delayed(const Duration(seconds: 1));
+        final progress = await SearchService.getProgress(res.taskId);
+        if (progress.status == 'completed') {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('《${detail.title}》已导入到书架')),
+          );
+          return;
+        }
+        if (progress.status == 'failed') {
+          throw Exception(progress.error.isNotEmpty ? progress.error : '导入失败');
+        }
+      }
+      throw Exception('导入超时');
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('导入失败: $e')),
+      );
+    }
+  }
+
+  Future<void> _startReading(BookDetail detail, BuildContext sheetContext) async {
+    // 关闭弹窗
+    Navigator.of(sheetContext).pop();
+    await _importAndNavigate(detail);
+  }
+
+  Future<void> _importAndNavigate(BookDetail detail) async {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('正在准备阅读…'), duration: Duration(seconds: 1)),
+    );
+    try {
+      final res = await SearchService.importBook(detail.sourceId, detail.sourceBookId, autoAddToShelf: true);
+      int? bookId;
+      for (int i = 0; i < 60; i++) {
+        await Future.delayed(const Duration(seconds: 1));
+        final progress = await SearchService.getProgress(res.taskId);
+        if (progress.status == 'completed') {
+          bookId = progress.bookId;
+          break;
+        }
+        if (progress.status == 'failed') {
+          throw Exception(progress.error.isNotEmpty ? progress.error : '导入失败');
+        }
+      }
+      if (bookId == null || bookId == 0) throw Exception('导入超时或未获取到书籍ID');
       if (!mounted) return;
       Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (_) => _ReaderPage(
-            book: detail,
-            chapter: chapter,
-          ),
+          builder: (_) => ReadingPage(bookId: bookId!, bookTitle: detail.title),
         ),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('加载失败: $e')),
+        SnackBar(content: Text('准备阅读失败: $e')),
       );
     }
   }
@@ -564,110 +632,3 @@ class _SearchResultTile extends StatelessWidget {
   }
 }
 
-// ===================================================================
-// 简易阅读页：通过 HTTP GET 章节 URL 获取内容并展示
-// ===================================================================
-class _ReaderPage extends StatefulWidget {
-  final BookDetail book;
-  final ChapterItem chapter;
-
-  const _ReaderPage({required this.book, required this.chapter});
-
-  @override
-  State<_ReaderPage> createState() => _ReaderPageState();
-}
-
-class _ReaderPageState extends State<_ReaderPage> {
-  bool _loading = true;
-  String? _error;
-  String _content = '';
-
-  @override
-  void initState() {
-    super.initState();
-    _fetchContent();
-  }
-
-  Future<void> _fetchContent() async {
-    try {
-      final res = await http.get(Uri.parse(widget.chapter.url));
-      if (res.statusCode != 200) {
-        throw Exception('HTTP ${res.statusCode}');
-      }
-      // 尝试解析 JSON；如果源返回纯文本则直接使用 body
-      String text;
-      try {
-        final json = jsonDecode(res.body) as Map<String, dynamic>;
-        text = json['content'] as String? ?? json['data'] as String? ?? res.body;
-      } catch (_) {
-        text = res.body;
-      }
-      if (!mounted) return;
-      setState(() {
-        _content = text;
-        _loading = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _error = e.toString();
-        _loading = false;
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.chapter.title),
-        leading: const BackButton(),
-      ),
-      body: SafeArea(
-        child: _loading
-            ? const Center(child: CircularProgressIndicator())
-            : _error != null
-                ? Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.error_outline,
-                              size: 48, color: theme.colorScheme.error),
-                          const SizedBox(height: 12),
-                          Text(_error!,
-                              textAlign: TextAlign.center,
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: theme.colorScheme.error,
-                              )),
-                          const SizedBox(height: 16),
-                          FilledButton.icon(
-                            onPressed: () {
-                              setState(() {
-                                _loading = true;
-                                _error = null;
-                              });
-                              _fetchContent();
-                            },
-                            icon: const Icon(Icons.refresh),
-                            label: const Text('重试'),
-                          ),
-                        ],
-                      ),
-                    ),
-                  )
-                : SingleChildScrollView(
-                    padding: const EdgeInsets.all(20),
-                    child: SelectableText(
-                      _content,
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        height: 1.8,
-                      ),
-                    ),
-                  ),
-      ),
-    );
-  }
-}

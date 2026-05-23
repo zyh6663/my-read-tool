@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"purereader-server/internal/models"
 	"purereader-server/internal/services"
@@ -159,7 +160,30 @@ func GetChapters(c *gin.Context) {
 		}
 		c.JSON(http.StatusOK, gin.H{"chapters": toc})
 		return
-	} else if book.Format == "txt" {
+	}
+	if book.StorageType == "online" {
+		// FilePath format: "online://{sourceID}/{bookID}"
+		sourceID, bookID, err := parseOnlinePath(book.FilePath)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid online file path: " + err.Error()})
+			return
+		}
+		detail, err := services.GetBookDetail(sourceID, bookID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get online book detail: " + err.Error()})
+			return
+		}
+		toc = make([]models.ChapterInfo, len(detail.Chapters))
+		for i, ch := range detail.Chapters {
+			toc[i] = models.ChapterInfo{
+				Index: ch.Index,
+				Title: ch.Title,
+			}
+		}
+		c.JSON(http.StatusOK, gin.H{"chapters": toc})
+		return
+	}
+	if book.Format == "txt" {
 		_, toc, err = services.ParseTXTFile(book.FilePath)
 	} else {
 		toc, err = loadStoredTOC(book)
@@ -212,6 +236,52 @@ func GetChapterByIndex(c *gin.Context) {
 		}})
 		return
 	}
+	if book.StorageType == "online" {
+		sourceID, bookID, err := parseOnlinePath(book.FilePath)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid online file path: " + err.Error()})
+			return
+		}
+		index, err := strconv.Atoi(indexStr)
+		if err != nil {
+			c.JSON(400, gin.H{"error": "invalid chapter index"})
+			return
+		}
+		// Load from cached content first, then fall back to fetching from source
+		if book.Content != "" {
+			contentStr, title, err := services.ExtractChapterFromContent(book.Content, index)
+			if err == nil {
+				c.JSON(200, gin.H{"chapter": models.Chapter{
+					Index:   index,
+					Title:   title,
+					Content: contentStr,
+				}})
+				return
+			}
+		}
+		// Fallback: fetch from source engine
+		detail, err := services.GetBookDetail(sourceID, bookID)
+		if err != nil {
+			c.JSON(500, gin.H{"error": "Failed to get online book detail: " + err.Error()})
+			return
+		}
+		if index < 0 || index >= len(detail.Chapters) {
+			c.JSON(400, gin.H{"error": "chapter index out of range"})
+			return
+		}
+		ch := detail.Chapters[index]
+		content, err := services.GetChapterContent(sourceID, bookID, ch.URL)
+		if err != nil {
+			c.JSON(500, gin.H{"error": "Failed to get chapter content: " + err.Error()})
+			return
+		}
+		c.JSON(200, gin.H{"chapter": models.Chapter{
+			Index:   ch.Index,
+			Title:   ch.Title,
+			Content: content,
+		}})
+		return
+	}
 
 	if book.Format == "txt" {
 		chapter, err = loadTXTChapter(book, indexStr)
@@ -229,6 +299,51 @@ func GetChapterByIndex(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"chapter": chapter,
 	})
+}
+
+// RemoteListBooks returns the full list of books from all enabled remote book sources.
+// GET /api/books/remote_list
+func RemoteListBooks(c *gin.Context) {
+	sources, err := services.LoadEnabledSources()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load sources: " + err.Error()})
+		return
+	}
+
+	type RemoteBookItem struct {
+		SourceID     uint   `json:"source_id"`
+		SourceName   string `json:"source_name"`
+		SourceBookID string `json:"source_book_id"`
+		Title        string `json:"title"`
+		Author       string `json:"author"`
+	}
+
+	var allBooks []RemoteBookItem
+	for _, src := range sources {
+		if src.Rule.ResponseType == "json" {
+			// For JSON sources (e.g. biquge), fetch and parse the complete book list
+			listURL := strings.ReplaceAll(src.Rule.Search.URL, "{keyword}", "")
+			listURL = strings.TrimRight(listURL, "?q=")
+			// The biquge source has URL "/api/books/search?q={keyword}"
+			// We need a dedicated list endpoint. Reuse the search with a broad query.
+			reader := services.NewRemoteReader(src.BaseURL)
+			remoteBooks, err := reader.ListBooks()
+			if err != nil {
+				continue
+			}
+			for _, rb := range remoteBooks {
+				allBooks = append(allBooks, RemoteBookItem{
+					SourceID:     src.ID,
+					SourceName:   src.Name,
+					SourceBookID: rb.Path,
+					Title:        rb.Name,
+					Author:       "",
+				})
+			}
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": allBooks})
 }
 
 // extractUserID resolves the current user from either the JWT auth middleware

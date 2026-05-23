@@ -33,9 +33,10 @@ func NewImportHandler() *ImportHandler { return &ImportHandler{} }
 
 func (h *ImportHandler) Import(c *gin.Context) {
 	var req struct {
-		SourceID     uint   `json:"source_id"`
-		BookID       string `json:"book_id"`
-		ChapterRange string `json:"chapter_range"`
+		SourceID      uint   `json:"source_id"`
+		BookID        string `json:"book_id"`
+		ChapterRange  string `json:"chapter_range"`
+		AutoAddToShelf bool   `json:"auto_add_to_shelf"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil || req.SourceID == 0 || req.BookID == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
@@ -47,14 +48,22 @@ func (h *ImportHandler) Import(c *gin.Context) {
 	importTasks.m[taskID] = &importTask{Progress: 0.01, Status: "running"}
 	importTasks.Unlock()
 
-	go h.runImport(taskID, importRequest(req))
+	go h.runImport(taskID, importRequest{
+		SourceID:       req.SourceID,
+		BookID:         req.BookID,
+		ChapterRange:   req.ChapterRange,
+		UserID:         extractUserID(c),
+		AutoAddToShelf: req.AutoAddToShelf,
+	})
 	c.JSON(http.StatusAccepted, gin.H{"data": gin.H{"task_id": taskID}})
 }
 
 type importRequest struct {
-	SourceID     uint
-	BookID       string
-	ChapterRange string
+	SourceID      uint
+	BookID        string
+	ChapterRange  string
+	UserID        string
+	AutoAddToShelf bool
 }
 
 func (h *ImportHandler) runImport(taskID string, req importRequest) {
@@ -88,7 +97,7 @@ func (h *ImportHandler) runImport(taskID string, req importRequest) {
 		StorageType: "online",
 		IsPrivate:  false,
 		Content:    "",
-		UserID:     "online",
+		UserID:     req.UserID,
 	}
 	if err := database.DB.Create(&book).Error; err != nil {
 		setTask(1, "failed", err.Error(), 0)
@@ -114,6 +123,20 @@ func (h *ImportHandler) runImport(taskID string, req importRequest) {
 		return
 	}
 	setTask(1, "completed", "", book.ID)
+
+	// Auto-add to shelf if requested
+	if req.AutoAddToShelf && req.UserID != "" {
+		var existing models.BookShelf
+		if err := database.DB.Where("user_id = ? AND book_id = ?", req.UserID, book.ID).First(&existing).Error; err != nil {
+			shelf := models.BookShelf{
+				UserID: req.UserID,
+				BookID: book.ID,
+			}
+			if err := database.DB.Create(&shelf).Error; err != nil {
+				fmt.Printf("import_handler: failed to auto-add book %d to shelf for user %s: %v\n", book.ID, req.UserID, err)
+			}
+		}
+	}
 }
 
 func (h *ImportHandler) Progress(c *gin.Context) {

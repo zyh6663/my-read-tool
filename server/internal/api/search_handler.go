@@ -19,7 +19,14 @@ func (h *SearchHandler) Search(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "keyword is required"})
 		return
 	}
-	results, err := services.SearchBooks(keyword)
+	source := c.Query("source")
+	page := 1
+	if p := c.Query("page"); p != "" {
+		if parsed, err := strconv.Atoi(p); err == nil && parsed > 0 {
+			page = parsed
+		}
+	}
+	results, err := services.SearchBooks(keyword, source, page)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

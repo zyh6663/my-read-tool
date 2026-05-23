@@ -13,7 +13,10 @@
       "list_selector": "$.books[*]",
       "fields": {
         "title": "$.name",
-        "book_id": "$.path"
+        "book_id": "$.path",
+        "author": "$.author",
+        "description": "$.description",
+        "cover_url": "$.cover"
       }
     },
     "detail": {
