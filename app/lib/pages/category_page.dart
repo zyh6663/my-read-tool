@@ -133,6 +133,7 @@ class _BookItem {
   final String title;
   final String author;
   final String coverUrl;
+  final String sourceName;
 
   const _BookItem({
     required this.sourceId,
@@ -140,6 +141,7 @@ class _BookItem {
     required this.title,
     required this.author,
     required this.coverUrl,
+    this.sourceName = '',
   });
 
   factory _BookItem.fromSearchResult(SearchResult r) => _BookItem(
@@ -148,6 +150,7 @@ class _BookItem {
         title: r.title,
         author: r.author,
         coverUrl: r.coverUrl,
+        sourceName: r.sourceName,
       );
 }
 
@@ -617,6 +620,14 @@ class _BookListTile extends StatelessWidget {
                             color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                           ),
                         ),
+                        if (book.sourceName.isNotEmpty)
+                          Text(
+                            book.sourceName,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              fontSize: 10,
+                              color: theme.colorScheme.primary.withAlpha(180),
+                            ),
+                          ),
                       ],
                     ),
                   ),

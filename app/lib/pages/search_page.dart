@@ -72,7 +72,7 @@ class _SearchPageState extends State<SearchPage> {
     });
 
     // 如果未登录导致 _selectedSourceId 为 null，则硬编码使用书源 ID=1
-    final sourceId = _selectedSourceId?.toString() ?? '1';
+    final sourceId = _selectedSourceId?.toString() ?? '';
 
     try {
       final results = await SearchService.search(

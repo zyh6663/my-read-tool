@@ -78,7 +78,7 @@ class ImportProgress {
 class SearchService {
   static Future<List<SearchResult>> search(String keyword, {int page = 1, String? source}) async {
     final query = <String, String>{'keyword': keyword, 'page': '$page'};
-    if (source != null) {
+    if (source != null && source.isNotEmpty) {
       query['source'] = source;
     }
     final uri = Uri.parse('${ApiConfig.baseUrl}/api/v1/search').replace(queryParameters: query);
