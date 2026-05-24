@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../animated_glass.dart';
+import '../auth_pages.dart';
 import '../glass_widgets.dart';
 import '../reading_page.dart';
 import '../services/search_service.dart';
+import '../services/source_service.dart';
 import '../widgets/ink_loading.dart';
 
 /// 分类关键词映射表（顺序匹配，命中第一个就归类）
@@ -170,6 +172,9 @@ class _CategoryPageState extends State<CategoryPage> {
   List<_BookItem> _allBooks = [];
   Map<String, List<_BookItem>> _grouped = {};
   String _selectedCategory = "全部";
+  List<BookSource> _sources = [];
+  int? _selectedSourceId;
+  bool _loadingSources = true;
 
   /// 所有出现过的分类（保持声明顺序）
   List<String> get _categories => [
@@ -188,15 +193,36 @@ class _CategoryPageState extends State<CategoryPage> {
   @override
   void initState() {
     super.initState();
+    _loadSources();
     _fetchAndClassify();
   }
 
+  Future<void> _loadSources() async {
+    try {
+      final token = await getToken();
+      if (token != null) {
+        final sources = await SourceService.listSources(token);
+        if (!mounted) return;
+        setState(() {
+          _sources = sources;
+          _loadingSources = false;
+        });
+      } else {
+        if (!mounted) return;
+        setState(() => _loadingSources = false);
+      }
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _loadingSources = false);
+    }
+  }
+
   /// 通过 RemoteListBooks 获取完整书库并自动归类
-  Future<void> _fetchAndClassify() async {
+  Future<void> _fetchAndClassify({String? sourceId}) async {
     final merged = <_BookItem>[];
 
     try {
-      final results = await SearchService.listRemoteBooks().timeout(const Duration(seconds: 20));
+      final results = await SearchService.listRemoteBooks(sourceId: sourceId).timeout(const Duration(seconds: 20));
       for (final r in results) {
         merged.add(_BookItem.fromSearchResult(r));
       }
@@ -229,6 +255,44 @@ class _CategoryPageState extends State<CategoryPage> {
 
     if (!mounted) return;
     setState(() => _loading = false);
+  }
+
+  Widget _buildSourceDropdown(ThemeData theme) {
+    if (_loadingSources) {
+      return const SizedBox(
+        width: 24,
+        height: 24,
+        child: Center(child: InkLoading(size: 16)),
+      );
+    }
+
+    return DropdownButton<int>(
+      value: _selectedSourceId,
+      underline: const SizedBox.shrink(),
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      items: [
+        DropdownMenuItem<int>(
+          value: null,
+          child: Text('全部书源', style: theme.textTheme.bodySmall),
+        ),
+        ..._sources.map((s) {
+          return DropdownMenuItem<int>(
+            value: s.id,
+            child: Text(s.name, style: theme.textTheme.bodySmall),
+          );
+        }),
+      ],
+      onChanged: (val) {
+        setState(() {
+          _selectedSourceId = val;
+          _loading = true;
+          _error = null;
+          _grouped = {};
+          _allBooks = [];
+        });
+        _fetchAndClassify(sourceId: val?.toString());
+      },
+    );
   }
 
   @override
@@ -284,18 +348,24 @@ class _CategoryPageState extends State<CategoryPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ---- 标题 ----
+          // ---- 标题 + 书源下拉 ----
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
             child: SlideFadeIn(
               child: GlassPanel(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  child: Text(
-                    '书籍分类',
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  child: Row(
+                    children: [
+                      Text(
+                        '书籍分类',
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const Spacer(),
+                      _buildSourceDropdown(theme),
+                    ],
                   ),
                 ),
               ),

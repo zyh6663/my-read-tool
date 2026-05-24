@@ -48,8 +48,8 @@ type ChapterItem struct {
 	URL   string `json:"url"`
 }
 
-func SearchBooks(keyword string, sourceFilter string, page int) ([]SearchResult, error) {
-	sources, err := LoadEnabledSources()
+func SearchBooks(keyword string, sourceFilter string, page int, userID string) ([]SearchResult, error) {
+	sources, err := LoadEnabledSources(userID)
 	if err != nil {
 		return nil, err
 	}

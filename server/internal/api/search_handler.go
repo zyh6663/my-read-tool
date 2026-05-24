@@ -26,7 +26,7 @@ func (h *SearchHandler) Search(c *gin.Context) {
 			page = parsed
 		}
 	}
-	results, err := services.SearchBooks(keyword, source, page)
+	results, err := services.SearchBooks(keyword, source, page, extractUserID(c))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

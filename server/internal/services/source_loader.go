@@ -43,9 +43,13 @@ type LoadedSource struct {
 }
 
 
-func LoadEnabledSources() ([]LoadedSource, error) {
+func LoadEnabledSources(userID string) ([]LoadedSource, error) {
 	var sources []models.BookSource
-	if err := database.DB.Where("enabled = ?", true).Order("priority desc, id desc").Find(&sources).Error; err != nil {
+	query := database.DB.Where("enabled = ?", true)
+	if userID != "" {
+		query = query.Where("user_id = ?", userID)
+	}
+	if err := query.Order("priority desc, id desc").Find(&sources).Error; err != nil {
 		return nil, err
 	}
 	var result []LoadedSource

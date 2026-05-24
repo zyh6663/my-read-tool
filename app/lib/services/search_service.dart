@@ -112,7 +112,9 @@ class SearchService {
   }
 
   static Future<List<SearchResult>> listRemoteBooks({String? sourceId}) async {
-    final uri = Uri.parse('${ApiConfig.baseUrl}/api/books/remote_list');
+    final uri = sourceId != null && sourceId.isNotEmpty
+        ? Uri.parse('${ApiConfig.baseUrl}/api/books/remote_list?source_id=$sourceId')
+        : Uri.parse('${ApiConfig.baseUrl}/api/books/remote_list');
     final res = await http.get(uri);
     final body = jsonDecode(res.body) as Map<String, dynamic>;
     if (res.statusCode != 200) throw Exception(body['error'] ?? '获取书库失败');

@@ -304,10 +304,22 @@ func GetChapterByIndex(c *gin.Context) {
 // RemoteListBooks returns the full list of books from all enabled remote book sources.
 // GET /api/books/remote_list
 func RemoteListBooks(c *gin.Context) {
-	sources, err := services.LoadEnabledSources()
+	sources, err := services.LoadEnabledSources(extractUserID(c))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load sources: " + err.Error()})
 		return
+	}
+	// 按 source_id 过滤
+	if sourceID := c.Query("source_id"); sourceID != "" {
+		sid, err := strconv.ParseUint(sourceID, 10, 64)
+		if err == nil {
+			for _, s := range sources {
+				if s.ID == uint(sid) {
+					sources = []services.LoadedSource{s}
+					break
+				}
+			}
+		}
 	}
 
 	type RemoteBookItem struct {
