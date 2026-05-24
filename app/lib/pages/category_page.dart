@@ -222,11 +222,12 @@ class _CategoryPageState extends State<CategoryPage> {
   }
 
   /// 通过 RemoteListBooks 获取完整书库并自动归类
-  Future<void> _fetchAndClassify() async {
+  Future<void> _fetchAndClassify({int? sourceId}) async {
+    final sid = sourceId?.toString() ?? _selectedSourceId?.toString();
     final merged = <_BookItem>[];
 
     try {
-      final results = await SearchService.listRemoteBooks(sourceId: _selectedSourceId?.toString()).timeout(const Duration(seconds: 20));
+      final results = await SearchService.listRemoteBooks(sourceId: sid).timeout(const Duration(seconds: 20));
       for (final r in results) {
         merged.add(_BookItem.fromSearchResult(r));
       }
@@ -266,6 +267,7 @@ class _CategoryPageState extends State<CategoryPage> {
       return const SizedBox(width: 24, height: 24);
     }
     _selectedSourceId ??= _sources.first.id;
+    final src = _sources.firstWhere((s) => s.id == _selectedSourceId, orElse: () => _sources.first);
     return InkWell(
       borderRadius: BorderRadius.circular(20),
       onTap: () {
@@ -279,9 +281,10 @@ class _CategoryPageState extends State<CategoryPage> {
                     leading: _selectedSourceId == s.id ? Icon(Icons.check_circle, color: theme.colorScheme.primary) : const Icon(Icons.circle_outlined),
                     title: Text(s.name),
                     onTap: () {
+                      final sid = s.id;
                       Navigator.pop(ctx);
-                      setState(() { _selectedSourceId = s.id; _loading = true; _grouped = {}; _error = null; });
-                      _fetchAndClassify();
+                      setState(() { _selectedSourceId = sid; _loading = true; _grouped = {}; _error = null; });
+                      _fetchAndClassify(sourceId: sid);
                     },
                   )),
             ]),
@@ -294,7 +297,7 @@ class _CategoryPageState extends State<CategoryPage> {
         child: Row(mainAxisSize: MainAxisSize.min, children: [
           Icon(Icons.source_rounded, size: 16, color: theme.colorScheme.primary),
           const SizedBox(width: 6),
-          Text(_sources.firstWhere((s) => s.id == _selectedSourceId, orElse: () => _sources.first).name, style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600)),
+          Text(src.name, style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600)),
           const SizedBox(width: 4),
           Icon(Icons.arrow_drop_down, size: 18, color: theme.colorScheme.primary),
         ]),

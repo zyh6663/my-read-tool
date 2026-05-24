@@ -53,7 +53,31 @@ class _SourceManagePageState extends State<SourceManagePage> {
           : ListView.builder(
               padding: const EdgeInsets.all(16),
               itemCount: _sources.length,
-              itemBuilder: (context, index) => SourceCard(source: _sources[index]),
+              itemBuilder: (context, index) {
+                final source = _sources[index];
+                return SourceCard(
+                  source: source,
+                  onToggle: (val) async {
+                    final token = await getToken();
+                    if (token == null) return;
+                    final updated = BookSource(
+                      id: source.id,
+                      name: source.name,
+                      baseUrl: source.baseUrl,
+                      ruleJson: source.ruleJson,
+                      enabled: val,
+                      priority: source.priority,
+                      isBuiltin: source.isBuiltin,
+                    );
+                    setState(() => _sources[index] = updated);
+                    try {
+                      await SourceService.updateSource(token, updated);
+                    } catch (_) {
+                      if (mounted) setState(() => _sources[index] = source);
+                    }
+                  },
+                );
+              },
             ),
       floatingActionButton: FloatingActionButton(onPressed: _openImport, child: const Icon(Icons.add)),
     );

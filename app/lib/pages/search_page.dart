@@ -405,35 +405,33 @@ class _SearchPageState extends State<SearchPage> {
       return const SizedBox(width: 24, height: 24);
     }
     _selectedSourceId ??= _sources.first.id;
-    return InkWell(
-      borderRadius: BorderRadius.circular(20),
-      onTap: () {
-        showModalBottomSheet(
-          context: context,
-          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-          builder: (ctx) => SafeArea(
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              const Padding(padding: EdgeInsets.all(16), child: Text('选择书源', style: TextStyle(fontWeight: FontWeight.w700))),
-              ..._sources.map((s) => ListTile(
-                    leading: _selectedSourceId == s.id ? Icon(Icons.check_circle, color: theme.colorScheme.primary) : const Icon(Icons.circle_outlined),
-                    title: Text(s.name),
-                    onTap: () {
-                      Navigator.pop(ctx);
-                      setState(() { _selectedSourceId = s.id; _loading = true; _results = []; });
-                      _search();
-                    },
-                  )),
-            ]),
-          ),
-        );
+    final src = _sources.firstWhere((s) => s.id == _selectedSourceId, orElse: () => _sources.first);
+    return PopupMenuButton<int>(
+      initialValue: _selectedSourceId,
+      onSelected: (val) {
+        setState(() {
+          _selectedSourceId = val;
+          _loading = true;
+          _results = [];
+        });
+        _search();
       },
+      itemBuilder: (ctx) => _sources.map((s) => PopupMenuItem<int>(
+            value: s.id,
+            child: Row(children: [
+              if (_selectedSourceId == s.id)
+                Icon(Icons.check_rounded, size: 18, color: theme.colorScheme.primary),
+              const SizedBox(width: 8),
+              Text(s.name),
+            ]),
+          )).toList(),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(color: theme.colorScheme.primary.withAlpha(20), borderRadius: BorderRadius.circular(20), border: Border.all(color: theme.colorScheme.primary.withAlpha(60))),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
           Icon(Icons.source_rounded, size: 16, color: theme.colorScheme.primary),
           const SizedBox(width: 6),
-          Text(_sources.firstWhere((s) => s.id == _selectedSourceId, orElse: () => _sources.first).name, style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600)),
+          Text(src.name, style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600)),
           const SizedBox(width: 4),
           Icon(Icons.arrow_drop_down, size: 18, color: theme.colorScheme.primary),
         ]),
