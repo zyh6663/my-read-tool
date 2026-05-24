@@ -216,6 +216,9 @@ class _CategoryPageState extends State<CategoryPage> {
       if (!mounted) return;
       setState(() => _loadingSources = false);
     }
+    if (_sources.isNotEmpty && _selectedSourceId == null) {
+      _selectedSourceId = _sources.first.id;
+    }
   }
 
   /// 通过 RemoteListBooks 获取完整书库并自动归类

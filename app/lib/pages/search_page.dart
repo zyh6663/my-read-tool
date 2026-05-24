@@ -58,6 +58,9 @@ class _SearchPageState extends State<SearchPage> {
       if (!mounted) return;
       setState(() => _loadingSources = false);
     }
+    if (_sources.isNotEmpty && _selectedSourceId == null) {
+      _selectedSourceId = _sources.first.id;
+    }
   }
 
   Future<void> _search() async {

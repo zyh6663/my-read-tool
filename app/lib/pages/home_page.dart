@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../animated_glass.dart';
 import '../glass_widgets.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   final VoidCallback? onOpenBookshelf;
   final VoidCallback? onOpenSearch;
   final VoidCallback? onOpenProfile;
@@ -18,6 +18,53 @@ class HomePage extends StatelessWidget {
     this.onBrowseCategory,
     this.onBrowseTag,
   });
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _showLoveDialog());
+  }
+
+  void _showLoveDialog() {
+    final theme = Theme.of(context);
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.all(24),
+        child: GlassPanel(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 36),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.favorite_rounded, size: 42, color: theme.colorScheme.primary),
+                const SizedBox(height: 20),
+                const Text(
+                  '张亿鑫 love bl',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: () => Navigator.of(ctx).pop(),
+                    child: const Text('知道了'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -39,9 +86,9 @@ class HomePage extends StatelessWidget {
                     spacing: 10,
                     runSpacing: 10,
                     children: [
-                      FilledButton.icon(onPressed: onOpenBookshelf, icon: const Icon(Icons.bookmark_rounded), label: const Text('书架')),
-                      OutlinedButton.icon(onPressed: onOpenSearch, icon: const Icon(Icons.search_rounded), label: const Text('搜索')),
-                      OutlinedButton.icon(onPressed: onOpenProfile, icon: const Icon(Icons.person_rounded), label: const Text('我的')),
+                      FilledButton.icon(onPressed: widget.onOpenBookshelf, icon: const Icon(Icons.bookmark_rounded), label: const Text('书架')),
+                      OutlinedButton.icon(onPressed: widget.onOpenSearch, icon: const Icon(Icons.search_rounded), label: const Text('搜索')),
+                      OutlinedButton.icon(onPressed: widget.onOpenProfile, icon: const Icon(Icons.person_rounded), label: const Text('我的')),
                     ],
                   ),
                   const SizedBox(height: 16),
@@ -69,7 +116,7 @@ class HomePage extends StatelessWidget {
                     title: const Text('最近阅读'),
                     subtitle: const Text('继续上次打开的内容'),
                     trailing: const Icon(Icons.chevron_right),
-                    onTap: onOpenBookshelf,
+                    onTap: widget.onOpenBookshelf,
                   ),
                   const Divider(height: 1),
                   ListTile(
@@ -77,7 +124,7 @@ class HomePage extends StatelessWidget {
                     title: const Text('最新导入'),
                     subtitle: const Text('查看最近上传到书架的书籍'),
                     trailing: const Icon(Icons.chevron_right),
-                    onTap: onOpenBookshelf,
+                    onTap: widget.onOpenBookshelf,
                   ),
                   const Divider(height: 1),
                   ListTile(
@@ -85,7 +132,7 @@ class HomePage extends StatelessWidget {
                     title: const Text('书籍分类'),
                     subtitle: const Text('按题材与类型快速浏览未来云端书库'),
                     trailing: const Icon(Icons.chevron_right),
-                    onTap: onBrowseCategory,
+                    onTap: widget.onBrowseCategory,
                   ),
                   const Divider(height: 1),
                   ListTile(
@@ -93,7 +140,7 @@ class HomePage extends StatelessWidget {
                     title: const Text('标签浏览'),
                     subtitle: const Text('为将来的推荐和专题集合做准备'),
                     trailing: const Icon(Icons.chevron_right),
-                    onTap: onBrowseTag,
+                    onTap: widget.onBrowseTag,
                   ),
                 ],
               ),
@@ -123,10 +170,10 @@ class HomePage extends StatelessWidget {
                     spacing: 8,
                     runSpacing: 8,
                     children: [
-                      _HomeActionChip(label: '热门题材', onTap: onBrowseCategory),
-                      _HomeActionChip(label: '最新上架', onTap: onOpenBookshelf),
-                      _HomeActionChip(label: '本周热度', onTap: onBrowseTag),
-                      _HomeActionChip(label: '继续阅读', onTap: onOpenBookshelf),
+                      _HomeActionChip(label: '热门题材', onTap: widget.onBrowseCategory),
+                      _HomeActionChip(label: '最新上架', onTap: widget.onOpenBookshelf),
+                      _HomeActionChip(label: '本周热度', onTap: widget.onBrowseTag),
+                      _HomeActionChip(label: '继续阅读', onTap: widget.onOpenBookshelf),
                     ],
                   ),
                 ],
