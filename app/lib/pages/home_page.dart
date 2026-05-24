@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../animated_glass.dart';
 import '../glass_widgets.dart';
@@ -30,7 +31,13 @@ class _HomePageState extends State<HomePage> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _showLoveDialog());
   }
 
-  void _showLoveDialog() {
+  Future<void> _showLoveDialog() async {
+    final prefs = await SharedPreferences.getInstance();
+    const key = 'love_dialog_shown';
+    if (prefs.getBool(key) == true) return;
+    await prefs.setBool(key, true);
+
+    if (!mounted) return;
     final theme = Theme.of(context);
     showDialog(
       context: context,

@@ -262,44 +262,42 @@ class _CategoryPageState extends State<CategoryPage> {
   }
 
   Widget _buildSourceDropdown(ThemeData theme) {
-    if (_loadingSources) {
-      return const SizedBox(width: 24, height: 24, child: Center(child: InkLoading(size: 16)));
+    if (_loadingSources || _sources.isEmpty) {
+      return const SizedBox(width: 24, height: 24);
     }
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.primary.withAlpha(20),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: theme.colorScheme.primary.withAlpha(60)),
-      ),
-      child: DropdownButton<int>(
-        value: _selectedSourceId,
-        isExpanded: false,
-        underline: const SizedBox(),
-        icon: const Icon(Icons.arrow_drop_down_rounded),
-        style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
-        dropdownColor: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
-        items: _sources.map((s) => DropdownMenuItem<int>(
-              value: s.id,
-              child: Row(children: [
-                if (_selectedSourceId == s.id) ...[
-                  Icon(Icons.check_rounded, size: 16, color: theme.colorScheme.primary),
-                  const SizedBox(width: 6),
-                ],
-                Text(s.name),
-              ]),
-            )).toList(),
-        onChanged: (val) {
-          if (val == null) return;
-          setState(() {
-            _selectedSourceId = val;
-            _loading = true;
-            _error = null;
-            _grouped = {};
-          });
-          _fetchAndClassify();
-        },
+    _selectedSourceId ??= _sources.first.id;
+    return InkWell(
+      borderRadius: BorderRadius.circular(20),
+      onTap: () {
+        showModalBottomSheet(
+          context: context,
+          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+          builder: (ctx) => SafeArea(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              const Padding(padding: EdgeInsets.all(16), child: Text('选择书源', style: TextStyle(fontWeight: FontWeight.w700))),
+              ..._sources.map((s) => ListTile(
+                    leading: _selectedSourceId == s.id ? Icon(Icons.check_circle, color: theme.colorScheme.primary) : const Icon(Icons.circle_outlined),
+                    title: Text(s.name),
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      setState(() { _selectedSourceId = s.id; _loading = true; _grouped = {}; _error = null; });
+                      _fetchAndClassify();
+                    },
+                  )),
+            ]),
+          ),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(color: theme.colorScheme.primary.withAlpha(20), borderRadius: BorderRadius.circular(20), border: Border.all(color: theme.colorScheme.primary.withAlpha(60))),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(Icons.source_rounded, size: 16, color: theme.colorScheme.primary),
+          const SizedBox(width: 6),
+          Text(_sources.firstWhere((s) => s.id == _selectedSourceId, orElse: () => _sources.first).name, style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600)),
+          const SizedBox(width: 4),
+          Icon(Icons.arrow_drop_down, size: 18, color: theme.colorScheme.primary),
+        ]),
       ),
     );
   }
