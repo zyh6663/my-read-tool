@@ -218,11 +218,11 @@ class _CategoryPageState extends State<CategoryPage> {
   }
 
   /// 通过 RemoteListBooks 获取完整书库并自动归类
-  Future<void> _fetchAndClassify({String? sourceId}) async {
+  Future<void> _fetchAndClassify() async {
     final merged = <_BookItem>[];
 
     try {
-      final results = await SearchService.listRemoteBooks(sourceId: sourceId).timeout(const Duration(seconds: 20));
+      final results = await SearchService.listRemoteBooks(sourceId: _selectedSourceId?.toString()).timeout(const Duration(seconds: 20));
       for (final r in results) {
         merged.add(_BookItem.fromSearchResult(r));
       }
@@ -290,7 +290,7 @@ class _CategoryPageState extends State<CategoryPage> {
           _grouped = {};
           _allBooks = [];
         });
-        _fetchAndClassify(sourceId: val?.toString());
+        _fetchAndClassify();
       },
     );
   }
