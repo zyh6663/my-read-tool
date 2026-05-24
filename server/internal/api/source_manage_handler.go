@@ -48,7 +48,7 @@ func ImportSource(c *gin.Context) {
 		return
 	}
 	var existing models.BookSource
-	if err := database.DB.Where("base_url = ?", req.BaseURL).First(&existing).Error; err == nil {
+	if err := database.DB.Where("base_url = ? AND user_id = ?", req.BaseURL, extractUserID(c)).First(&existing).Error; err == nil {
 		respondError(c, http.StatusConflict, "来源已存在")
 		return
 	}
@@ -82,7 +82,7 @@ func UpdateSource(c *gin.Context) {
 	}
 	if req.BaseURL != src.BaseURL {
 		var exists models.BookSource
-		if err := database.DB.Where("base_url = ? AND id <> ?", req.BaseURL, src.ID).First(&exists).Error; err == nil {
+		if err := database.DB.Where("base_url = ? AND id <> ? AND user_id = ?", req.BaseURL, src.ID, extractUserID(c)).First(&exists).Error; err == nil {
 			respondError(c, http.StatusConflict, "base_url 已存在")
 			return
 		}

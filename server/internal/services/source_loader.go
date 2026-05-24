@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
-	"sync"
 
 	"purereader-server/internal/models"
 	"purereader-server/pkg/database"
@@ -43,26 +42,21 @@ type LoadedSource struct {
 	Rule SourceRule
 }
 
-var sourceRulesOnce sync.Once
-var cachedSources []LoadedSource
-var cachedSourceErr error
 
 func LoadEnabledSources() ([]LoadedSource, error) {
-	sourceRulesOnce.Do(func() {
-		var sources []models.BookSource
-		if err := database.DB.Where("enabled = ?", true).Order("priority desc, id desc").Find(&sources).Error; err != nil {
-			cachedSourceErr = err
-			return
+	var sources []models.BookSource
+	if err := database.DB.Where("enabled = ?", true).Order("priority desc, id desc").Find(&sources).Error; err != nil {
+		return nil, err
+	}
+	var result []LoadedSource
+	for _, src := range sources {
+		var rule SourceRule
+		if err := json.Unmarshal([]byte(src.RuleJSON), &rule); err != nil {
+			continue
 		}
-		for _, src := range sources {
-			var rule SourceRule
-			if err := json.Unmarshal([]byte(src.RuleJSON), &rule); err != nil {
-				continue
-			}
-			cachedSources = append(cachedSources, LoadedSource{BookSource: src, Rule: rule})
-		}
-	})
-	return cachedSources, cachedSourceErr
+		result = append(result, LoadedSource{BookSource: src, Rule: rule})
+	}
+	return result, nil
 }
 
 func ReloadBuiltinSources() error {
