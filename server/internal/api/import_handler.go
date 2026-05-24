@@ -85,8 +85,14 @@ func (h *ImportHandler) runImport(taskID string, req importRequest) {
 	}
 	setTask(0.2, "running", "", 0)
 
+	title := detail.Title
+	if title == "" {
+		parts := strings.Split(req.BookID, "/")
+		title = parts[len(parts)-1]
+	}
+
 	book := models.Book{
-		Title:      detail.Title,
+		Title:      title,
 		Author:     detail.Author,
 		CoverURL:   detail.CoverURL,
 		FilePath:   fmt.Sprintf("online://%d/%s", req.SourceID, req.BookID),
@@ -103,7 +109,7 @@ func (h *ImportHandler) runImport(taskID string, req importRequest) {
 	setTask(0.35, "running", "", book.ID)
 
 	var builder strings.Builder
-	builder.WriteString(detail.Title + "\n")
+	builder.WriteString(title + "\n")
 	builder.WriteString(detail.Author + "\n\n")
 
 	for i, ch := range detail.Chapters {

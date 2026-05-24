@@ -2,7 +2,6 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
-import 'main.dart';
 import 'widgets/gold_border.dart';
 
 class GlassPanel extends StatelessWidget {
@@ -26,7 +25,9 @@ class GlassPanel extends StatelessWidget {
             color: Colors.transparent,
             child: Container(
               decoration: BoxDecoration(
-                color: (tint ?? kPaperWarm).withAlpha(140),
+                color: Theme.of(context).brightness == Brightness.light
+                    ? Colors.white.withAlpha(220)
+                    : Theme.of(context).colorScheme.surface.withAlpha(180),
                 borderRadius: borderRadius.subtract(const BorderRadius.all(Radius.circular(1))),
               ),
               child: child,

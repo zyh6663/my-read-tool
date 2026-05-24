@@ -269,8 +269,9 @@ class _SearchPageState extends State<SearchPage> {
         final progress = await SearchService.getProgress(res.taskId);
         if (progress.status == 'completed') {
           if (!mounted) return;
+          final t = detail.title.isNotEmpty ? detail.title : detail.sourceBookId.split('/').last;
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('《${detail.title}》已导入到书架')),
+            SnackBar(content: Text('《$t》已导入到书架')),
           );
           return;
         }

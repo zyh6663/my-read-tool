@@ -11,6 +11,9 @@ class ReadingAppBar extends StatelessWidget {
   final VoidCallback onBackPressed;
   final VoidCallback onFavorite;
   final bool isFavorited;
+  final VoidCallback onToggleImmersive;
+  final bool isImmersive;
+  final VoidCallback onDownload;
 
   const ReadingAppBar({
     super.key,
@@ -19,6 +22,9 @@ class ReadingAppBar extends StatelessWidget {
     required this.onBackPressed,
     required this.onFavorite,
     required this.isFavorited,
+    required this.onToggleImmersive,
+    required this.isImmersive,
+    required this.onDownload,
   });
 
   @override
@@ -57,6 +63,17 @@ class ReadingAppBar extends StatelessWidget {
                     icon: isFavorited ? Icons.favorite_rounded : Icons.favorite_border_rounded,
                     color: isFavorited ? kVermilion : kGold,
                     onTap: onFavorite,
+                  ),
+                  IconButton(
+                    icon: Icon(isImmersive ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                      color: theme.text.withAlpha(180)),
+                    tooltip: isImmersive ? '退出沉浸' : '沉浸模式',
+                    onPressed: onToggleImmersive,
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.download_rounded, color: theme.text.withAlpha(180)),
+                    tooltip: '下载全书',
+                    onPressed: onDownload,
                   ),
                 ],
               ),

@@ -9,7 +9,7 @@ import 'app_controller.dart';
 import 'auth_pages.dart';
 import 'bookshelf_page.dart';
 import 'config/api_config.dart';
-import 'main.dart';
+
 import 'pages/category_page.dart';
 import 'pages/favorite_page.dart';
 import 'pages/home_page.dart';
@@ -203,10 +203,20 @@ class _ReaderRootAppState extends State<ReaderRootApp> {
             (settings.flutterThemeMode == ThemeMode.system &&
                 MediaQuery.of(context).platformBrightness == Brightness.dark);
 
-        final baseTheme = ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: kPrimaryGreen, brightness: isDark ? Brightness.dark : Brightness.light),
+        final theme = ThemeData(
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: const Color(0xFF4CAF50),
+            brightness: isDark ? Brightness.dark : Brightness.light,
+          ),
           useMaterial3: true,
-          scaffoldBackgroundColor: isDark ? kDarkBg : kLightBg,
+          scaffoldBackgroundColor: isDark ? const Color(0xFF121212) : const Color(0xFFFAF8F5),
+          cardColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+          dialogTheme: DialogThemeData(backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white),
+          appBarTheme: AppBarTheme(
+            backgroundColor: isDark ? const Color(0xFF1A1A1A) : const Color(0xFFFAF8F5),
+            foregroundColor: isDark ? Colors.white : Colors.black87,
+            surfaceTintColor: Colors.transparent,
+          ),
           fontFamily: settings.fontFamily == 'system' ? GoogleFonts.notoSansSc().fontFamily : settings.fontFamily,
         );
 
@@ -214,7 +224,7 @@ class _ReaderRootAppState extends State<ReaderRootApp> {
         if (!_splashDone) {
           home = SplashPage(onComplete: _onSplashComplete);
         } else if (_isChecking) {
-          home = Scaffold(backgroundColor: isDark ? kDarkBg : kLightBg, body: const Center(child: InkLoading()));
+          home = Scaffold(backgroundColor: isDark ? const Color(0xFF121212) : const Color(0xFFFAF8F5), body: const Center(child: InkLoading()));
         } else if (_isLoggedIn) {
           home = MainHomePage(controller: _controller, onLogout: () => setState(() { _isLoggedIn = false; _splashDone = false; }));
         } else {
@@ -224,10 +234,19 @@ class _ReaderRootAppState extends State<ReaderRootApp> {
         return MaterialApp(
           title: 'PureReader',
           debugShowCheckedModeBanner: false,
-          theme: baseTheme,
-          darkTheme: baseTheme.copyWith(
-            colorScheme: ColorScheme.fromSeed(seedColor: kPrimaryGreen, brightness: Brightness.dark),
-            scaffoldBackgroundColor: kDarkBg,
+          theme: theme,
+          darkTheme: ThemeData(
+            colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF4CAF50), brightness: Brightness.dark),
+            useMaterial3: true,
+            scaffoldBackgroundColor: const Color(0xFF121212),
+            cardColor: const Color(0xFF1E1E1E),
+            dialogTheme: const DialogThemeData(backgroundColor: Color(0xFF1E1E1E)),
+            appBarTheme: const AppBarTheme(
+              backgroundColor: Color(0xFF1A1A1A),
+              foregroundColor: Colors.white,
+              surfaceTintColor: Colors.transparent,
+            ),
+            fontFamily: settings.fontFamily == 'system' ? GoogleFonts.notoSansSc().fontFamily : settings.fontFamily,
           ),
           themeMode: settings.flutterThemeMode,
           builder: (context, child) {

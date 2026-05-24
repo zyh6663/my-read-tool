@@ -11,6 +11,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -51,6 +52,20 @@ func SearchBooks(keyword string, sourceFilter string, page int) ([]SearchResult,
 	sources, err := LoadEnabledSources()
 	if err != nil {
 		return nil, err
+	}
+	if len(sources) == 0 {
+		return []SearchResult{}, nil
+	}
+	// 仅搜索指定书源
+	if sourceFilter != "" {
+		fid, _ := strconv.ParseUint(sourceFilter, 10, 64)
+		filtered := make([]LoadedSource, 0)
+		for _, s := range sources {
+			if s.ID == uint(fid) {
+				filtered = append(filtered, s)
+			}
+		}
+		sources = filtered
 	}
 	if len(sources) == 0 {
 		return []SearchResult{}, nil

@@ -342,26 +342,13 @@ class _BookShelfPageState extends State<BookShelfPage> {
           onLongPress: () => _showRemoveDialog(book),
           child: Row(
             children: [
-              Container(
-                width: 44, height: 60,
-                decoration: BoxDecoration(
-                  color: Color.fromARGB(255,
-                    80 + ((book.bookTitle.hashCode) & 0xFF) % 80,
-                    60 + ((book.bookTitle.hashCode >> 8) & 0xFF) % 80,
-                    40 + ((book.bookTitle.hashCode >> 16) & 0xFF) % 100,
-                  ),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                alignment: Alignment.center,
-                child: Text(book.bookTitle.isNotEmpty ? book.bookTitle[0] : '书',
-                  style: const TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold)),
-              ),
+              Icon(Icons.menu_book_rounded, size: 28, color: Theme.of(context).colorScheme.primary),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(book.bookTitle, maxLines: 1, overflow: TextOverflow.ellipsis,
+                    Text(book.bookTitle.isNotEmpty ? book.bookTitle : '未命名', maxLines: 1, overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
                     const SizedBox(height: 4),
                     Text(book.bookAuthor, maxLines: 1, overflow: TextOverflow.ellipsis,

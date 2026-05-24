@@ -56,12 +56,26 @@ class _ReadingPageState extends State<ReadingPage> {
   bool _isLoadingContent = false;
   String? _error;
   bool _showMenu = true;
+  bool _isImmersive = false;
   ReadingTheme _currentTheme = ReadingTheme.darkPaper;
   double _fontSize = 18.0;
   double _baseFontSize = 18.0;
   double _lineHeight = 1.8;
   bool _isFavorited = false;
   bool _isFavoriteLoading = false;
+  final Map<int, String> _chapterCache = {};
+
+  void _toggleImmersive() {
+    setState(() {
+      _isImmersive = !_isImmersive;
+      _showMenu = !_isImmersive;
+    });
+    if (_isImmersive) {
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    } else {
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    }
+  }
 
   static const _themeModeMap = {
     'dark': ReadingTheme.darkPaper,
@@ -128,6 +142,11 @@ class _ReadingPageState extends State<ReadingPage> {
       final toc = list.map((e) => _ChapterInfo.fromJson(e as Map<String, dynamic>)).toList();
       final fmt = body['format'] as String? ?? body['book_format'] as String?;
       if (fmt != null && fmt.isNotEmpty) _bookFormat = fmt;
+      if (toc.isEmpty) {
+        if (!mounted) return;
+        setState(() { _error = '本书未解析到任何章节'; _isLoadingToc = false; });
+        return;
+      }
       if (!mounted) return;
       setState(() { _chapters..clear()..addAll(toc); });
       await _restoreProgress();
@@ -140,6 +159,7 @@ class _ReadingPageState extends State<ReadingPage> {
   }
 
   Future<void> _loadChapter(int index) async {
+    if (_chapters.isEmpty) return;
     if (index < 0 || index >= _chapters.length) return;
     setState(() {
       _currentChapterIndex = index;
@@ -154,6 +174,7 @@ class _ReadingPageState extends State<ReadingPage> {
       final chapter = _Chapter.fromJson(body['chapter'] as Map<String, dynamic>);
       if (!mounted) return;
       setState(() { _content = chapter.content; _isLoadingContent = false; });
+      _cacheChapter(index, chapter.content);
       unawaited(_saveProgressLocal());
       unawaited(_syncProgressToBackend());
     } catch (e) {
@@ -236,6 +257,28 @@ class _ReadingPageState extends State<ReadingPage> {
     }
   }
 
+  void _cacheChapter(int index, String content) {
+    _chapterCache[index] = content;
+  }
+
+  Future<void> _downloadBook() async {
+    if (_chapters.isEmpty) return;
+    for (int i = 0; i < _chapters.length; i++) {
+      if (_chapterCache.containsKey(i)) continue;
+      try {
+        final uri = Uri.parse('$_kBookApiBaseUrl/api/books/${widget.bookId}/chapters/$i');
+        final res = await http.get(uri, headers: {'X-User-Id': _globalDeviceId}).timeout(const Duration(seconds: 60));
+        if (res.statusCode == 200) {
+          final body = jsonDecode(res.body) as Map<String, dynamic>;
+          final chapter = _Chapter.fromJson(body['chapter'] as Map<String, dynamic>);
+          _cacheChapter(i, chapter.content);
+        }
+      } catch (_) {}
+    }
+    if (!mounted) return;
+    _showEdgeToast('下载完成 (${_chapterCache.length}/${_chapters.length})');
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = _currentTheme;
@@ -265,6 +308,9 @@ class _ReadingPageState extends State<ReadingPage> {
                 onBackPressed: () => Navigator.pop(context),
                 onFavorite: _toggleFavorite,
                 isFavorited: _isFavorited,
+                onToggleImmersive: _toggleImmersive,
+                isImmersive: _isImmersive,
+                onDownload: _downloadBook,
               )),
             if (_showMenu)
               Positioned(bottom: 0, left: 0, right: 0, child: ReadingBottomBar(

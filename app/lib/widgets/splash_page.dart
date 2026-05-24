@@ -15,10 +15,11 @@ class SplashPage extends StatefulWidget {
 }
 
 class _SplashPageState extends State<SplashPage>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _titleFade;
   late Animation<double> _textFade;
+  late final AnimationController _foryouController;
   final List<_GoldParticle> _particles = [];
   final _random = Random(42);
 
@@ -42,10 +43,16 @@ class _SplashPageState extends State<SplashPage>
       _particles.add(_GoldParticle(_random));
     }
 
+    _foryouController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2000),
+    );
+    _foryouController.addListener(() => setState(() {}));
+
     _controller.forward();
     _controller.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
-        widget.onComplete?.call();
+        _foryouController.forward().then((_) => widget.onComplete?.call());
       }
     });
   }
@@ -53,6 +60,7 @@ class _SplashPageState extends State<SplashPage>
   @override
   void dispose() {
     _controller.dispose();
+    _foryouController.dispose();
     super.dispose();
   }
 
@@ -97,6 +105,39 @@ class _SplashPageState extends State<SplashPage>
                               child: const Text('PureReader', style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w700, letterSpacing: 4.0)),
                             ),
                           ),
+                        ),
+                        const SizedBox(height: 20),
+                        AnimatedBuilder(
+                          animation: _foryouController,
+                          builder: (context, child) {
+                            final t = _foryouController.value;
+                            if (t <= 0) return const SizedBox.shrink();
+                            return Opacity(
+                              opacity: t.clamp(0.0, 1.0),
+                              child: Transform.translate(
+                                offset: Offset(0, sin(t * pi * 4) * 6),
+                                child: SizedBox(
+                                  width: MediaQuery.of(context).size.width * 0.75,
+                                  child: ShaderMask(
+                                    shaderCallback: (bounds) => LinearGradient(
+                                      colors: [Colors.white70, Colors.white, Colors.white70],
+                                      stops: [0.0, 0.5 + sin(t * pi * 3) * 0.1, 1.0],
+                                    ).createShader(bounds),
+                                    child: const Text(
+                                      'FORYOU',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontSize: 46,
+                                        fontWeight: FontWeight.w900,
+                                        color: Colors.white,
+                                        letterSpacing: 10,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
                         ),
                         const SizedBox(height: 48),
                         Opacity(
