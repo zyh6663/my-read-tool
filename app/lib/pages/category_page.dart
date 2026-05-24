@@ -205,6 +205,7 @@ class _CategoryPageState extends State<CategoryPage> {
         if (!mounted) return;
         setState(() {
           _sources = sources;
+          _selectedSourceId = sources.isNotEmpty ? sources.first.id : null;
           _loadingSources = false;
         });
       } else {
@@ -259,39 +260,44 @@ class _CategoryPageState extends State<CategoryPage> {
 
   Widget _buildSourceDropdown(ThemeData theme) {
     if (_loadingSources) {
-      return const SizedBox(
-        width: 24,
-        height: 24,
-        child: Center(child: InkLoading(size: 16)),
-      );
+      return const SizedBox(width: 24, height: 24, child: Center(child: InkLoading(size: 16)));
     }
-
-    return DropdownButton<int>(
-      value: _selectedSourceId,
-      underline: const SizedBox.shrink(),
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      items: [
-        DropdownMenuItem<int>(
-          value: null,
-          child: Text('全部书源', style: theme.textTheme.bodySmall),
-        ),
-        ..._sources.map((s) {
-          return DropdownMenuItem<int>(
-            value: s.id,
-            child: Text(s.name, style: theme.textTheme.bodySmall),
-          );
-        }),
-      ],
-      onChanged: (val) {
-        setState(() {
-          _selectedSourceId = val;
-          _loading = true;
-          _error = null;
-          _grouped = {};
-          _allBooks = [];
-        });
-        _fetchAndClassify();
-      },
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primary.withAlpha(20),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: theme.colorScheme.primary.withAlpha(60)),
+      ),
+      child: DropdownButton<int>(
+        value: _selectedSourceId,
+        isExpanded: false,
+        underline: const SizedBox(),
+        icon: const Icon(Icons.arrow_drop_down_rounded),
+        style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+        dropdownColor: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        items: _sources.map((s) => DropdownMenuItem<int>(
+              value: s.id,
+              child: Row(children: [
+                if (_selectedSourceId == s.id) ...[
+                  Icon(Icons.check_rounded, size: 16, color: theme.colorScheme.primary),
+                  const SizedBox(width: 6),
+                ],
+                Text(s.name),
+              ]),
+            )).toList(),
+        onChanged: (val) {
+          if (val == null) return;
+          setState(() {
+            _selectedSourceId = val;
+            _loading = true;
+            _error = null;
+            _grouped = {};
+          });
+          _fetchAndClassify();
+        },
+      ),
     );
   }
 
