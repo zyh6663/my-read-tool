@@ -1,15 +1,18 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'auth_pages.dart';
 import 'config/api_config.dart';
 import 'main.dart';
 import 'renderers/book_renderer.dart';
+import 'services/download_manager.dart';
 import 'widgets/chapter_drawer.dart';
 import 'widgets/gold_border.dart';
 import 'widgets/ink_loading.dart';
@@ -63,7 +66,6 @@ class _ReadingPageState extends State<ReadingPage> {
   double _lineHeight = 1.8;
   bool _isFavorited = false;
   bool _isFavoriteLoading = false;
-  final Map<int, String> _chapterCache = {};
   final ScrollController _scrollController = ScrollController();
   double _scrollPosition = 0;
 
@@ -275,26 +277,38 @@ class _ReadingPageState extends State<ReadingPage> {
     }
   }
 
-  void _cacheChapter(int index, String content) {
-    _chapterCache[index] = content;
+  Future<File> _cacheFile(int index) async {
+    final dir = await getTemporaryDirectory();
+    return File('${dir.path}/cache_${widget.bookId}_$index.txt');
+  }
+
+  Future<void> _cacheChapter(int index, String content) async {
+    final f = await _cacheFile(index);
+    await f.writeAsString(content);
   }
 
   Future<void> _downloadBook() async {
     if (_chapters.isEmpty) return;
+    _showEdgeToast('开始下载...');
+    final dir = Directory('/storage/emulated/0/Download/PureReader');
+    if (!await dir.exists()) await dir.create(recursive: true);
+    final file = File('${dir.path}/${widget.bookTitle}.txt');
+    final sink = file.openWrite();
+    int loaded = 0;
+    final savedIndex = _currentChapterIndex;
     for (int i = 0; i < _chapters.length; i++) {
-      if (_chapterCache.containsKey(i)) continue;
-      try {
-        final uri = Uri.parse('$_kBookApiBaseUrl/api/books/${widget.bookId}/chapters/$i');
-        final res = await http.get(uri, headers: {'X-User-Id': _globalDeviceId}).timeout(const Duration(seconds: 60));
-        if (res.statusCode == 200) {
-          final body = jsonDecode(res.body) as Map<String, dynamic>;
-          final chapter = _Chapter.fromJson(body['chapter'] as Map<String, dynamic>);
-          _cacheChapter(i, chapter.content);
-        }
-      } catch (_) {}
+      await _loadChapter(i);
+      sink.writeln(_chapters[i].title);
+      sink.writeln(_content);
+      sink.writeln();
+      loaded++;
     }
+    await sink.close();
+    final size = await file.length();
+    await DownloadManager.addRecord(widget.bookTitle, file.path, loaded, size);
     if (!mounted) return;
-    _showEdgeToast('下载完成 (${_chapterCache.length}/${_chapters.length})');
+    _showEdgeToast('下载完成: $loaded 章');
+    _loadChapter(savedIndex);
   }
 
   @override

@@ -309,16 +309,17 @@ func RemoteListBooks(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load sources: " + err.Error()})
 		return
 	}
-	// 按 source_id 过滤
-	if sourceID := c.Query("source_id"); sourceID != "" {
-		sid, err := strconv.ParseUint(sourceID, 10, 64)
+	sid := c.Query("source_id")
+	if sid != "" {
+		filterID, err := strconv.ParseUint(sid, 10, 64)
 		if err == nil {
+			filtered := make([]services.LoadedSource, 0)
 			for _, s := range sources {
-				if s.ID == uint(sid) {
-					sources = []services.LoadedSource{s}
-					break
+				if s.ID == uint(filterID) {
+					filtered = append(filtered, s)
 				}
 			}
+			sources = filtered
 		}
 	}
 

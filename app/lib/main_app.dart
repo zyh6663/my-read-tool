@@ -11,6 +11,7 @@ import 'bookshelf_page.dart';
 import 'config/api_config.dart';
 
 import 'pages/category_page.dart';
+import 'pages/download_page.dart';
 import 'pages/favorite_page.dart';
 import 'pages/home_page.dart';
 import 'pages/search_page.dart';
@@ -71,6 +72,7 @@ class _MainHomeNavState extends State<MainHomePage> {
         ))),
         onOpenFavorites: () => Navigator.of(context).push(PageFlipRoute(page: FavoritePage(controller: widget.controller))),
         onOpenSources: () => Navigator.of(context).push(PageFlipRoute(page: const SourceManagePage())),
+        onOpenDownloads: () => Navigator.of(context).push(PageFlipRoute(page: const DownloadPage())),
       ),
     ];
 
