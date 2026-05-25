@@ -9,14 +9,14 @@ class BookSource {
   final String name;
   final String baseUrl;
   final String ruleJson;
-  final bool enabled;
+  bool enabled;
   final int priority;
   final bool isBuiltin;
 
-  const BookSource({this.id, required this.name, required this.baseUrl, required this.ruleJson, required this.enabled, required this.priority, required this.isBuiltin});
+  BookSource({this.id, required this.name, required this.baseUrl, required this.ruleJson, required this.enabled, required this.priority, required this.isBuiltin});
 
   factory BookSource.fromJson(Map<String, dynamic> json) => BookSource(
-        id: json['id'] as int?,
+        id: json['id'] as int? ?? json['ID'] as int?,
         name: json['name'] as String? ?? '',
         baseUrl: json['base_url'] as String? ?? '',
         ruleJson: json['rule_json'] as String? ?? '',

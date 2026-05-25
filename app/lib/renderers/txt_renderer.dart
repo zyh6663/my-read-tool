@@ -9,8 +9,9 @@ class TxtRenderer extends StatelessWidget {
   final ReadingTheme theme;
   final double fontSize;
   final double lineHeight;
+  final ScrollController scrollController;
 
-  const TxtRenderer({super.key, required this.chapters, required this.currentIndex, required this.theme, required this.fontSize, required this.lineHeight});
+  const TxtRenderer({super.key, required this.chapters, required this.currentIndex, required this.theme, required this.fontSize, required this.lineHeight, required this.scrollController});
 
   @override
   Widget build(BuildContext context) {
@@ -20,6 +21,7 @@ class TxtRenderer extends StatelessWidget {
     }
 
     return SingleChildScrollView(
+      controller: scrollController,
       physics: const ClampingScrollPhysics(),
       padding: const EdgeInsets.only(top: 20, bottom: 100),
       child: Column(

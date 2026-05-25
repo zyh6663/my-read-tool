@@ -64,6 +64,8 @@ class _ReadingPageState extends State<ReadingPage> {
   bool _isFavorited = false;
   bool _isFavoriteLoading = false;
   final Map<int, String> _chapterCache = {};
+  final ScrollController _scrollController = ScrollController();
+  double _scrollPosition = 0;
 
   void _toggleImmersive() {
     setState(() {
@@ -108,9 +110,14 @@ class _ReadingPageState extends State<ReadingPage> {
     } catch (_) {}
   }
 
+  void _onScroll() {
+    _scrollPosition = _scrollController.hasClients ? _scrollController.offset : 0;
+  }
+
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScroll);
     _loadThemeFromSettings().then((_) => _updateStatusBar());
     _loadToc();
     _checkShelfStatus();
@@ -128,6 +135,8 @@ class _ReadingPageState extends State<ReadingPage> {
 
   @override
   void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -204,16 +213,25 @@ class _ReadingPageState extends State<ReadingPage> {
   }
 
   Future<void> _saveProgressLocal() async {
-    try { final prefs = await SharedPreferences.getInstance(); await prefs.setInt('reading_progress_${widget.bookId}', _currentChapterIndex); } catch (_) {}
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('reading_progress_${widget.bookId}', _currentChapterIndex);
+      await prefs.setDouble('reading_progress_${widget.bookId}_pos', _scrollPosition);
+    } catch (_) {}
   }
   Future<void> _syncProgressToBackend() async {
-    try { await http.put(Uri.parse('$_kBookApiBaseUrl/api/books/${widget.bookId}/progress'), headers: {'Content-Type': 'application/json', 'X-User-Id': _globalDeviceId}, body: jsonEncode({'chapter_index': _currentChapterIndex, 'position': 0.0})); } catch (_) {}
+    try { await http.put(Uri.parse('$_kBookApiBaseUrl/api/books/${widget.bookId}/progress'), headers: {'Content-Type': 'application/json', 'X-User-Id': _globalDeviceId}, body: jsonEncode({'chapter_index': _currentChapterIndex, 'position': _scrollPosition})); } catch (_) {}
   }
   Future<void> _restoreProgress() async {
     int? restoredIndex;
     try { final res = await http.get(Uri.parse('$_kBookApiBaseUrl/api/books/${widget.bookId}/progress'), headers: {'X-User-Id': _globalDeviceId}); if (res.statusCode == 200) { final body = jsonDecode(res.body) as Map<String, dynamic>; restoredIndex = body['chapter_index'] as int?; } } catch (_) {}
     if (restoredIndex == null) { try { final prefs = await SharedPreferences.getInstance(); restoredIndex = prefs.getInt('reading_progress_${widget.bookId}'); } catch (_) {} }
     if (restoredIndex != null && restoredIndex >= 0 && restoredIndex < _chapters.length) { await _loadChapter(restoredIndex); } else { await _loadChapter(0); }
+    final prefs = await SharedPreferences.getInstance();
+    final pos = prefs.getDouble('reading_progress_${widget.bookId}_pos') ?? 0;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients && pos > 0) _scrollController.jumpTo(pos);
+    });
   }
 
   void _toggleMenu() => setState(() => _showMenu = !_showMenu);
@@ -373,6 +391,7 @@ class _ReadingPageState extends State<ReadingPage> {
       format: format, chapters: rendererChapters, currentIndex: _currentChapterIndex,
       theme: theme, fontSize: _fontSize, lineHeight: _lineHeight,
       onPrevChapter: _goToPrev, onNextChapter: _goToNext,
+      scrollController: _scrollController,
     );
     return GestureDetector(
       behavior: HitTestBehavior.translucent,

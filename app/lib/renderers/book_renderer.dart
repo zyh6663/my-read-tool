@@ -61,6 +61,7 @@ Widget buildBookRenderer({
   required double lineHeight,
   required VoidCallback onPrevChapter,
   required VoidCallback onNextChapter,
+  required ScrollController scrollController,
 }) {
   switch (format) {
     case BookFormat.epub:
@@ -71,6 +72,7 @@ Widget buildBookRenderer({
         theme: theme,
         fontSize: fontSize,
         lineHeight: lineHeight,
+        scrollController: scrollController,
       );
     case BookFormat.pdf:
       return PdfRenderer(
@@ -81,6 +83,7 @@ Widget buildBookRenderer({
         lineHeight: lineHeight,
         onPrevChapter: onPrevChapter,
         onNextChapter: onNextChapter,
+        scrollController: scrollController,
       );
     case BookFormat.txt:
     case BookFormat.unknown:
@@ -90,6 +93,7 @@ Widget buildBookRenderer({
         theme: theme,
         fontSize: fontSize,
         lineHeight: lineHeight,
+        scrollController: scrollController,
       );
   }
 }

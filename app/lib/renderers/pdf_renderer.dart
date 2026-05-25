@@ -14,6 +14,7 @@ class PdfRenderer extends StatefulWidget {
   final double lineHeight;
   final VoidCallback onPrevChapter;
   final VoidCallback onNextChapter;
+  final ScrollController scrollController;
 
   const PdfRenderer({
     super.key,
@@ -24,6 +25,7 @@ class PdfRenderer extends StatefulWidget {
     required this.lineHeight,
     required this.onPrevChapter,
     required this.onNextChapter,
+    required this.scrollController,
   });
 
   @override
@@ -127,6 +129,7 @@ class _PdfRendererState extends State<PdfRenderer> {
             itemBuilder: (context, index) {
               final page = widget.chapters[index];
               return SingleChildScrollView(
+                controller: widget.scrollController,
                 physics: const BouncingScrollPhysics(),
                 padding: const EdgeInsets.symmetric(
                     horizontal: 24, vertical: 12),

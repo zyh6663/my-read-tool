@@ -35,12 +35,12 @@ class _HomePageState extends State<HomePage> {
     final prefs = await SharedPreferences.getInstance();
     const key = 'love_dialog_shown';
     if (prefs.getBool(key) == true) return;
-    await prefs.setBool(key, true);
 
     if (!mounted) return;
     final theme = Theme.of(context);
-    showDialog(
+    final result = await showDialog<String>(
       context: context,
+      barrierDismissible: false,
       builder: (ctx) => Dialog(
         backgroundColor: Colors.transparent,
         insetPadding: const EdgeInsets.all(24),
@@ -53,16 +53,32 @@ class _HomePageState extends State<HomePage> {
                 Icon(Icons.favorite_rounded, size: 42, color: theme.colorScheme.primary),
                 const SizedBox(height: 20),
                 const Text(
-                  '张亿鑫 love bl',
+                  '我幼稚吗',
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 24),
                 SizedBox(
                   width: double.infinity,
-                  child: FilledButton(
-                    onPressed: () => Navigator.of(ctx).pop(),
-                    child: const Text('知道了'),
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(ctx).pop('a'),
+                    child: const Text('A. 不幼稚'),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(ctx).pop('b'),
+                    child: const Text('B. 幼稚'),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(ctx).pop('c'),
+                    child: const Text('C. 选A'),
                   ),
                 ),
               ],
@@ -71,6 +87,21 @@ class _HomePageState extends State<HomePage> {
         ),
       ),
     );
+    if (result == 'a' || result == 'c') {
+      await prefs.setBool(key, true);
+      return;
+    }
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('需重新选择'),
+        duration: Duration(seconds: 1),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+    // 循环直到用户做出有效选择
+    await _showLoveDialog();
   }
 
   @override

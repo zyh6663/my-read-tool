@@ -58,22 +58,16 @@ class _SourceManagePageState extends State<SourceManagePage> {
                 return SourceCard(
                   source: source,
                   onToggle: (val) async {
-                    final token = await getToken();
-                    if (token == null) return;
-                    final updated = BookSource(
-                      id: source.id,
-                      name: source.name,
-                      baseUrl: source.baseUrl,
-                      ruleJson: source.ruleJson,
-                      enabled: val,
-                      priority: source.priority,
-                      isBuiltin: source.isBuiltin,
-                    );
-                    setState(() => _sources[index] = updated);
+                    final sid = source.id;
+                    if (sid == null || sid == 0) return;
+                    final token = await getToken() ?? '';
+                    source.enabled = val;
+                    setState(() {});
                     try {
-                      await SourceService.updateSource(token, updated);
-                    } catch (_) {
-                      if (mounted) setState(() => _sources[index] = source);
+                      await SourceService.updateSource(token, source);
+                    } catch (e) {
+                      source.enabled = !val;
+                      setState(() {});
                     }
                   },
                 );
