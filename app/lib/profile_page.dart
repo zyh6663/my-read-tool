@@ -12,6 +12,7 @@ class ProfilePage extends StatelessWidget {
   final VoidCallback? onOpenFavorites;
   final VoidCallback? onOpenSources;
   final VoidCallback? onOpenDownloads;
+  final VoidCallback? onOpenBookmarks;
 
   const ProfilePage({
     super.key,
@@ -21,6 +22,7 @@ class ProfilePage extends StatelessWidget {
     this.onOpenFavorites,
     this.onOpenSources,
     this.onOpenDownloads,
+    this.onOpenBookmarks,
   });
 
   @override
@@ -72,6 +74,14 @@ class ProfilePage extends StatelessWidget {
                       subtitle: const Text('查看收藏的书籍', style: TextStyle(color: kInkGray)),
                       trailing: const Icon(Icons.chevron_right_rounded, color: kInkGray),
                       onTap: onOpenFavorites,
+                    ),
+                    const Divider(height: 1),
+                    ListTile(
+                      leading: const Icon(Icons.bookmark_rounded, color: kGold),
+                      title: const Text('书签', style: TextStyle(color: kInkWarm)),
+                      subtitle: const Text('阅读进度和书签记录', style: TextStyle(color: kInkGray)),
+                      trailing: const Icon(Icons.chevron_right_rounded, color: kInkGray),
+                      onTap: onOpenBookmarks,
                     ),
                     const Divider(height: 1),
                     ListTile(

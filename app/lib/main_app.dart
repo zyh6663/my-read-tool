@@ -10,6 +10,7 @@ import 'auth_pages.dart';
 import 'bookshelf_page.dart';
 import 'config/api_config.dart';
 
+import 'pages/bookmarks_page.dart';
 import 'pages/category_page.dart';
 import 'pages/download_page.dart';
 import 'pages/favorite_page.dart';
@@ -73,6 +74,7 @@ class _MainHomeNavState extends State<MainHomePage> {
         onOpenFavorites: () => Navigator.of(context).push(PageFlipRoute(page: FavoritePage(controller: widget.controller))),
         onOpenSources: () => Navigator.of(context).push(PageFlipRoute(page: const SourceManagePage())),
         onOpenDownloads: () => Navigator.of(context).push(PageFlipRoute(page: const DownloadPage())),
+        onOpenBookmarks: () => Navigator.of(context).push(PageFlipRoute(page: const BookmarksPage())),
       ),
     ];
 

@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"purereader-server/internal/models"
 	"purereader-server/internal/services"
@@ -331,7 +332,7 @@ func RemoteListBooks(c *gin.Context) {
 		Author       string `json:"author"`
 	}
 
-	var allBooks []RemoteBookItem
+	allBooks := make([]RemoteBookItem, 0)
 	for _, src := range sources {
 		if src.Rule.ResponseType == "json" {
 			// For JSON sources (e.g. biquge), fetch and parse the complete book list
@@ -497,6 +498,7 @@ func UpdateProgress(c *gin.Context) {
 	var req struct {
 		ChapterIndex int     `json:"chapter_index"`
 		Position     float64 `json:"position"`
+		DurationSec  int64   `json:"duration_sec"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -505,15 +507,17 @@ func UpdateProgress(c *gin.Context) {
 		return
 	}
 
+	now := time.Now().Unix()
 	var progress models.Progress
 	result := database.DB.Where("book_id = ? AND user_id = ?", book.ID, userID).First(&progress)
 	if result.Error != nil {
-		// Create new progress record
 		progress = models.Progress{
 			BookID:       book.ID,
 			UserID:       userID,
 			ChapterIndex: req.ChapterIndex,
 			Position:     req.Position,
+			TotalSeconds: req.DurationSec,
+			LastReadAt:   now,
 		}
 		if err := database.DB.Create(&progress).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
@@ -522,9 +526,17 @@ func UpdateProgress(c *gin.Context) {
 			return
 		}
 	} else {
-		// Update existing record
 		progress.ChapterIndex = req.ChapterIndex
 		progress.Position = req.Position
+		if req.DurationSec > 0 {
+			progress.TotalSeconds += req.DurationSec
+		} else if progress.LastReadAt > 0 {
+			elapsed := now - progress.LastReadAt
+			if elapsed > 0 && elapsed < 3600 {
+				progress.TotalSeconds += elapsed
+			}
+		}
+		progress.LastReadAt = now
 		if err := database.DB.Save(&progress).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error": "Failed to update progress",
@@ -538,5 +550,104 @@ func UpdateProgress(c *gin.Context) {
 		"user_id":       progress.UserID,
 		"chapter_index": progress.ChapterIndex,
 		"position":      progress.Position,
+		"total_seconds": progress.TotalSeconds,
+		"last_read_at":  progress.LastReadAt,
 	})
+}
+
+// GetBookmarks returns reading history (books with saved progress) for the current user.
+func GetBookmarks(c *gin.Context) {
+	userID := extractUserID(c)
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing user ID"})
+		return
+	}
+
+	var progresses []models.Progress
+	database.DB.Where("user_id = ? AND total_seconds > 0", userID).
+		Preload("Book").Order("last_read_at desc").Find(&progresses)
+
+	type BookmarkItem struct {
+		BookID       uint    `json:"book_id"`
+		BookTitle    string  `json:"book_title"`
+		ChapterIndex int     `json:"chapter_index"`
+		Position     float64 `json:"position"`
+		TotalMin     int64   `json:"total_minutes"`
+		LastReadAt   int64   `json:"last_read_at"`
+	}
+
+	items := make([]BookmarkItem, 0, len(progresses))
+	for _, p := range progresses {
+		items = append(items, BookmarkItem{
+			BookID:       p.BookID,
+			BookTitle:    p.Book.Title,
+			ChapterIndex: p.ChapterIndex,
+			Position:     p.Position,
+			TotalMin:     p.TotalSeconds / 60,
+			LastReadAt:   p.LastReadAt,
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": items})
+}
+
+// GetReadingStats returns reading statistics for admin dashboard.
+func GetReadingStats(c *gin.Context) {
+	userID := c.Query("user_id")
+
+	type BookStat struct {
+		BookID  uint   `json:"book_id"`
+		Title   string `json:"title"`
+		Minutes int64  `json:"minutes"`
+	}
+
+	type UserStat struct {
+		UserID    string     `json:"user_id"`
+		BookCount int        `json:"book_count"`
+		TotalMin  int64      `json:"total_minutes"`
+		Books     []BookStat `json:"books"`
+	}
+
+	var rows []struct {
+		UserID     string
+		BookCount  int
+		TotalSec   int64
+		BookID     uint
+		BookTitle  string
+		BookMin    int64
+	}
+
+	query := database.DB.Table("progresses p").
+		Select("p.user_id, COUNT(*) as book_count, SUM(p.total_seconds) as total_sec, p.book_id, b.title as book_title, SUM(p.total_seconds)/60 as book_min").
+		Joins("LEFT JOIN books b ON b.id = p.book_id").
+		Where("p.total_seconds > 0")
+
+	if userID != "" {
+		query = query.Where("p.user_id = ?", userID)
+	}
+
+	query.Group("p.user_id, p.book_id").Order("p.user_id, book_min DESC").Scan(&rows)
+
+	statsMap := make(map[string]*UserStat)
+	for _, r := range rows {
+		us, ok := statsMap[r.UserID]
+		if !ok {
+			us = &UserStat{UserID: r.UserID}
+			statsMap[r.UserID] = us
+		}
+		us.BookCount++
+		us.TotalMin += r.BookMin
+		us.Books = append(us.Books, BookStat{
+			BookID:  r.BookID,
+			Title:   r.BookTitle,
+			Minutes: r.BookMin,
+		})
+	}
+
+	stats := make([]UserStat, 0, len(statsMap))
+	for _, s := range statsMap {
+		stats = append(stats, *s)
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": stats})
 }

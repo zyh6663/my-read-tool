@@ -194,7 +194,6 @@ class _CategoryPageState extends State<CategoryPage> {
   void initState() {
     super.initState();
     _loadSources();
-    _fetchAndClassify();
   }
 
   Future<void> _loadSources() async {
@@ -219,6 +218,7 @@ class _CategoryPageState extends State<CategoryPage> {
     if (_sources.isNotEmpty && _selectedSourceId == null) {
       _selectedSourceId = _sources.first.id;
     }
+    _fetchAndClassify();
   }
 
   /// 通过 RemoteListBooks 获取完整书库并自动归类

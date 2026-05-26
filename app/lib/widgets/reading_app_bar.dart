@@ -14,6 +14,7 @@ class ReadingAppBar extends StatelessWidget {
   final VoidCallback onToggleImmersive;
   final bool isImmersive;
   final VoidCallback onDownload;
+  final VoidCallback onBookmark;
 
   const ReadingAppBar({
     super.key,
@@ -25,6 +26,7 @@ class ReadingAppBar extends StatelessWidget {
     required this.onToggleImmersive,
     required this.isImmersive,
     required this.onDownload,
+    required this.onBookmark,
   });
 
   @override
@@ -63,6 +65,11 @@ class ReadingAppBar extends StatelessWidget {
                     icon: isFavorited ? Icons.favorite_rounded : Icons.favorite_border_rounded,
                     color: isFavorited ? kVermilion : kGold,
                     onTap: onFavorite,
+                  ),
+                  _IconGlassButton(
+                    icon: Icons.bookmark_add_rounded,
+                    color: kGold,
+                    onTap: onBookmark,
                   ),
                   IconButton(
                     icon: Icon(isImmersive ? Icons.visibility_off_rounded : Icons.visibility_rounded,

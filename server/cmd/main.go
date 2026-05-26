@@ -46,6 +46,7 @@ func main() {
 	r.POST("/api/books/upload", api.UploadBook)
 	r.POST("/api/books/remote_import", api.RemoteImport)
 	r.GET("/api/books/remote_list", api.RemoteListBooks)
+	r.GET("/api/admin/stats", api.GetReadingStats)
 
 	r.Static("/books", "/mnt/books")
 
@@ -65,6 +66,7 @@ func main() {
 		bookshelf.DELETE("/remove/:id", bookShelfHandler.RemoveFromShelf)
 		bookshelf.GET("/list", bookShelfHandler.ListShelf)
 		bookshelf.GET("/check/:book_id", bookShelfHandler.CheckInShelf)
+		bookshelf.GET("/bookmarks", api.GetBookmarks)
 	}
 
 	authHandler := api.NewAuthHandler(database.DB)

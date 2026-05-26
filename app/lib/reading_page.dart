@@ -66,8 +66,10 @@ class _ReadingPageState extends State<ReadingPage> {
   double _lineHeight = 1.8;
   bool _isFavorited = false;
   bool _isFavoriteLoading = false;
+  bool _isRestoring = false;
   final ScrollController _scrollController = ScrollController();
   double _scrollPosition = 0;
+  late final DateTime _sessionStart;
 
   void _toggleImmersive() {
     setState(() {
@@ -113,12 +115,14 @@ class _ReadingPageState extends State<ReadingPage> {
   }
 
   void _onScroll() {
+    if (_isRestoring || _isLoadingContent) return;
     _scrollPosition = _scrollController.hasClients ? _scrollController.offset : 0;
   }
 
   @override
   void initState() {
     super.initState();
+    _sessionStart = DateTime.now();
     _scrollController.addListener(_onScroll);
     _loadThemeFromSettings().then((_) => _updateStatusBar());
     _loadToc();
@@ -139,6 +143,14 @@ class _ReadingPageState extends State<ReadingPage> {
   void dispose() {
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
+    final secs = DateTime.now().difference(_sessionStart).inSeconds;
+    if (secs > 0) {
+      http.put(
+        Uri.parse('$_kBookApiBaseUrl/api/books/${widget.bookId}/progress'),
+        headers: {'Content-Type': 'application/json', 'X-User-Id': _globalDeviceId},
+        body: jsonEncode({'chapter_index': _currentChapterIndex, 'position': _scrollPosition, 'duration_sec': secs}),
+      ).then((_) {}, onError: (_) {});
+    }
     super.dispose();
   }
 
@@ -215,6 +227,7 @@ class _ReadingPageState extends State<ReadingPage> {
   }
 
   Future<void> _saveProgressLocal() async {
+    if (_isRestoring) return;
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt('reading_progress_${widget.bookId}', _currentChapterIndex);
@@ -224,16 +237,32 @@ class _ReadingPageState extends State<ReadingPage> {
   Future<void> _syncProgressToBackend() async {
     try { await http.put(Uri.parse('$_kBookApiBaseUrl/api/books/${widget.bookId}/progress'), headers: {'Content-Type': 'application/json', 'X-User-Id': _globalDeviceId}, body: jsonEncode({'chapter_index': _currentChapterIndex, 'position': _scrollPosition})); } catch (_) {}
   }
+
+  Future<void> _saveBookmark() async {
+    await _saveProgressLocal();
+    await _syncProgressToBackend();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      content: Text('书签已保存'),
+      duration: Duration(seconds: 1),
+      behavior: SnackBarBehavior.floating,
+      margin: EdgeInsets.only(bottom: 80, left: 60, right: 60),
+    ));
+  }
   Future<void> _restoreProgress() async {
+    _isRestoring = true;
     int? restoredIndex;
     try { final res = await http.get(Uri.parse('$_kBookApiBaseUrl/api/books/${widget.bookId}/progress'), headers: {'X-User-Id': _globalDeviceId}); if (res.statusCode == 200) { final body = jsonDecode(res.body) as Map<String, dynamic>; restoredIndex = body['chapter_index'] as int?; } } catch (_) {}
     if (restoredIndex == null) { try { final prefs = await SharedPreferences.getInstance(); restoredIndex = prefs.getInt('reading_progress_${widget.bookId}'); } catch (_) {} }
     if (restoredIndex != null && restoredIndex >= 0 && restoredIndex < _chapters.length) { await _loadChapter(restoredIndex); } else { await _loadChapter(0); }
     final prefs = await SharedPreferences.getInstance();
     final pos = prefs.getDouble('reading_progress_${widget.bookId}_pos') ?? 0;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollController.hasClients && pos > 0) _scrollController.jumpTo(pos);
-    });
+    if (pos > 0) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_scrollController.hasClients) _scrollController.jumpTo(pos);
+      });
+    }
+    _isRestoring = false;
   }
 
   void _toggleMenu() => setState(() => _showMenu = !_showMenu);
@@ -343,6 +372,7 @@ class _ReadingPageState extends State<ReadingPage> {
                 onToggleImmersive: _toggleImmersive,
                 isImmersive: _isImmersive,
                 onDownload: _downloadBook,
+                onBookmark: _saveBookmark,
               )),
             if (_showMenu)
               Positioned(bottom: 0, left: 0, right: 0, child: ReadingBottomBar(
